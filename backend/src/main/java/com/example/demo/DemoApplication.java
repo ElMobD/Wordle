@@ -1,14 +1,13 @@
-package fr.joyboyswx.wordle;
+package com.example.demo;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class WordleApplication {
+public class DemoApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(WordleApplication.class, args);
-		
+		SpringApplication.run(DemoApplication.class, args);
 	}
 
 }
