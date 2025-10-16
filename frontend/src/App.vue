@@ -8,11 +8,8 @@ const switchLang = () => {
 </script>
 
 <template>
-  <div class="min-h-screen w-full bg-gray-50 dark:bg-neutral-900 text-gray-900 dark:text-neutral-100">
+  <div class="h-screen w-full bg-gray-50 dark:bg-neutral-900 text-gray-900 dark:text-neutral-100 overflow-hidden">
     <Navbar />
-    <div class="container-app">
-       <h1>CONTENU PRINCIPAL</h1>
-    </div>
+    <router-view />
   </div>
 </template>
-

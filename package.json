@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "tailwindcss": "^4.1.14"
+    "tailwindcss": "^4.1.14",
+    "vue-router": "^4.6.0"
   }
 }
