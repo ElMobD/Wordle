@@ -1,4 +1,4 @@
-package com.wordleplus.backend;
+package com.wordle.backend;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
