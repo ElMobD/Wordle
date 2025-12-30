@@ -1,4 +1,4 @@
-package com.wordle.backend;
+package com.wordle.backend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,7 +27,7 @@ public class SecurityConfig {
                 .defaultSuccessUrl("/user", true)
             )
             .cors(cors -> cors.configurationSource(corsConfigurationSource()));
-        
+
         return http.build();
     }
 
@@ -38,10 +38,9 @@ public class SecurityConfig {
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
 }
-

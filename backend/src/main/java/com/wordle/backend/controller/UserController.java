@@ -1,4 +1,4 @@
-package com.wordle.backend;
+package com.wordle.backend.controller;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -17,7 +17,6 @@ public class UserController {
 
     @GetMapping("/user")
     public Map<String, Object> user(@AuthenticationPrincipal OAuth2User principal) {
-        // Retourne l’intégralité des attributs Google sans provoquer de NPE
         return Map.of(
             "message", "Voici tout ce que Google a renvoyé",
             "attributes", principal.getAttributes()
