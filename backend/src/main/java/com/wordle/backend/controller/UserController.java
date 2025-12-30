@@ -10,15 +10,10 @@ import java.util.Map;
 @RestController
 public class UserController {
 
-    @GetMapping("/")
-    public String home() {
-        return "Bienvenue ! <a href='/oauth2/authorization/google'>Se connecter avec Google</a>";
-    }
-
-    @GetMapping("/user")
-    public Map<String, Object> user(@AuthenticationPrincipal OAuth2User principal) {
+    @GetMapping("/user/info")
+    public Map<String, Object> userInfo(@AuthenticationPrincipal OAuth2User principal) {
         return Map.of(
-            "message", "Voici tout ce que Google a renvoyé",
+            "message", "Voici les infos utilisateur",
             "attributes", principal.getAttributes()
         );
     }

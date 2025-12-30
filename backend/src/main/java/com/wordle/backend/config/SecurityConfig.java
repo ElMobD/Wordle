@@ -1,5 +1,6 @@
 package com.wordle.backend.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -15,16 +16,19 @@ import java.util.Arrays;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    @Autowired
+    private OAuth2SuccessHandler oauth2SuccessHandler;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/", "/login**", "/error", "/webjars/**", "/api/health", "/actuator/**").permitAll()
+                .requestMatchers("/", "/login**", "/auth/**", "/error", "/webjars/**", "/api/health", "/actuator/**").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2
-                .defaultSuccessUrl("/user", true)
+                .successHandler(oauth2SuccessHandler)
             )
             .cors(cors -> cors.configurationSource(corsConfigurationSource()));
 
@@ -44,3 +48,4 @@ public class SecurityConfig {
         return source;
     }
 }
+
