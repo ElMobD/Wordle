@@ -45,7 +45,9 @@ export function useAuth() {
   }
 
   const getToken = (): string | null => {
-    return token.value || localStorage.getItem('token')
+    const storedToken = localStorage.getItem('token')
+    token.value = storedToken
+    return storedToken
   }
 
   return {
