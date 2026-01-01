@@ -26,15 +26,21 @@ export function useAuth() {
   const checkAuth = () => {
     const stored = localStorage.getItem('isAuthenticated')
     const storedToken = localStorage.getItem('token')
+    const storedUser = localStorage.getItem('user')
     
-    if (stored === 'true' && storedToken) {
+    // Tous les trois doivent être présents pour être authentifié
+    if (stored === 'true' && storedToken && storedUser) {
       isAuthenticated.value = true
       token.value = storedToken
-      
-      const storedUser = localStorage.getItem('user')
-      if (storedUser) {
-        user.value = JSON.parse(storedUser)
-      }
+      user.value = JSON.parse(storedUser)
+    } else {
+      // Si l'un manque, on considère que c'est incohérent et on nettoie tout
+      isAuthenticated.value = false
+      token.value = null
+      user.value = null
+      localStorage.removeItem('isAuthenticated')
+      localStorage.removeItem('user')
+      localStorage.removeItem('token')
     }
   }
 

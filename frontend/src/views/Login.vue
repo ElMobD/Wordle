@@ -11,25 +11,21 @@ const loginWithGoogle = () => {
 }
 </script>
 
-
 <template>
   <div class="login-container">
     <div class="login-card">
-      <h1>Wordle</h1>
-      <p>Connectez-vous pour jouer</p>
-      
+
+      <h1>Wordle</h1>  
 
       <div v-if="error" class="error">{{ error }}</div>
-
-      <div class="oauth-divider">
-        <span>ou</span>
-      </div>
 
       <button class="oauth-button" @click="loginWithGoogle" :disabled="loading">
         Se connecter avec Google
       </button>
+
     </div>
   </div>
 </template>
+
 <style scoped>
 </style>

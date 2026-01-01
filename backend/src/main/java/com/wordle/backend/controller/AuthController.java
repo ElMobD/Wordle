@@ -21,7 +21,7 @@ public class AuthController {
 
     @GetMapping("/")
     public String home() {
-        return "Bienvenue ! <a href='/oauth2/authorization/google'>Se connecter avec Google</a>";
+        return "<h>Voici où se trouve l'api backend Spring boot</h>";
     }
 
     @GetMapping("/auth/callback")

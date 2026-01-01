@@ -22,7 +22,10 @@ const routes = [
   },
   {
     path: '/',
-    redirect: '/dashboard'
+    redirect: () => {
+      const { isAuthenticated } = useAuth()
+      return isAuthenticated.value ? '/dashboard' : '/login'
+    }
   }
 ]
 
