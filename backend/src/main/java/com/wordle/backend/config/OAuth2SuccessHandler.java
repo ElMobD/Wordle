@@ -12,9 +12,6 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 
 @Component
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
@@ -34,25 +31,15 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         String email = principal.getAttribute("email");
         String name = principal.getAttribute("name");
         String picture = principal.getAttribute("picture");
+        String locale = principal.getAttribute("locale");
         
         // Sauvegarder ou mettre à jour l'utilisateur en base de données
         userService.findOrCreateUser(googleId, email, name, picture);
         
-        // Générer le JWT
-        String token = jwtService.generateTokenFromOAuth2(email, name);
+        // Générer le JWT avec toutes les infos
+        String token = jwtService.generateTokenFromOAuth2(email, name, picture, locale, googleId);
         
-        // Créer le JSON user
-        String userJson = "";
-        try {
-            userJson = URLEncoder.encode(
-                "{\"email\":\"" + email + "\",\"name\":\"" + name + "\"}",
-                StandardCharsets.UTF_8.toString()
-            );
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-        
-        // Rediriger vers le frontend avec le token
-        response.sendRedirect("http://localhost:5173/callback?token=" + token + "&user=" + userJson);
+        // Rediriger vers le frontend avec seulement le token
+        response.sendRedirect("http://localhost:5173/callback?token=" + token);
     }
 }

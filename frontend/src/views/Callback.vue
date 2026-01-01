@@ -8,26 +8,36 @@ const route = useRoute()
 const { login } = useAuth()
 
 onMounted(async () => {
-  // Récupère le token du query parameter
+  // Récupère seulement le token du query parameter
   const token = route.query.token as string
-  const userStr = route.query.user as string
 
-  if (token && userStr) {
+  if (token) {
     try {
-      // Parse les infos utilisateur
-      const userData = JSON.parse(decodeURIComponent(userStr))
+      // Stocke le token et récupère les infos utilisateur depuis l'API
+      const response = await fetch('http://localhost:8080/api/user/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       
-      // Stocke le token et l'user
-      login(userData, token)
-      
-      // Redirige vers le dashboard
-      router.push('/dashboard')
+      if (response.ok) {
+        const userData = await response.json()
+        
+        // Stocke le token et l'user
+        login(userData, token)
+        
+        // Redirige vers le dashboard
+        router.push('/homepage')
+      } else {
+        console.error('Erreur lors de la récupération du profil')
+        router.push('/login')
+      }
     } catch (error) {
-      console.error('Erreur lors du parsing du callback', error)
+      console.error('Erreur lors du callback', error)
       router.push('/login')
     }
   } else {
-    console.error('Token ou user manquant')
+    console.error('Token manquant')
     router.push('/login')
   }
 })
@@ -43,37 +53,4 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.callback-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.loading {
-  text-align: center;
-  color: white;
-}
-
-.loading p {
-  font-size: 1.2rem;
-  margin-bottom: 2rem;
-}
-
-.spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 </style>

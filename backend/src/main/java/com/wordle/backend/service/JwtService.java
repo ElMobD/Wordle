@@ -32,10 +32,13 @@ public class JwtService {
                 .compact();
     }
 
-    public String generateTokenFromOAuth2(String email, String name) {
+    public String generateTokenFromOAuth2(String email, String name, String picture, String locale, String sub) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("email", email);
         claims.put("name", name);
+        claims.put("picture", picture);
+        claims.put("locale", locale);
+        claims.put("sub", sub);
         return generateToken(claims, email);
     }
 }

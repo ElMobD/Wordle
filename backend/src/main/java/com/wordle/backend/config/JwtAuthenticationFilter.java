@@ -44,6 +44,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     UsernamePasswordAuthenticationToken authentication = 
                             new UsernamePasswordAuthenticationToken(email, null, null);
                     
+                    // 4.5️⃣ Stocke le token JWT dans les détails pour pouvoir le récupérer plus tard
+                    authentication.setDetails(tokenJwt);
+                    
                     // 5️⃣ Dit à Spring: "l'utilisateur est authentifié"
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 } catch (JwtException e) {

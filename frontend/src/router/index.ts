@@ -1,8 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import Login from '../views/Login.vue'
-import Dashboard from '../views/Dashboard.vue'
 import Callback from '../views/Callback.vue'
+import Homepage from '../views/Homepage.vue'
+import Settings from '../views/Settings.vue'
 
 const routes = [
   {
@@ -16,15 +17,20 @@ const routes = [
     meta: { requiresAuth: false }
   },
   {
-    path: '/dashboard',
-    component: Dashboard,
+    path: '/homepage',
+    component: Homepage,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/settings',
+    component: Settings,
     meta: { requiresAuth: true }
   },
   {
     path: '/',
     redirect: () => {
       const { isAuthenticated } = useAuth()
-      return isAuthenticated.value ? '/dashboard' : '/login'
+      return isAuthenticated.value ? '/homepage' : '/login'
     }
   }
 ]
@@ -46,7 +52,7 @@ router.beforeEach((to, from, next) => {
   }
   // Si l'utilisateur est connecté et essaie d'accéder au login
   else if (to.path === '/login' && isAuthenticated.value) {
-    next('/dashboard')
+    next('/homepage')
   }
   // Sinon, autoriser la navigation
   else {
