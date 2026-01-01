@@ -1,6 +1,7 @@
 package com.wordle.backend.config;
 
 import com.wordle.backend.service.JwtService;
+import com.wordle.backend.service.UserService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,12 +22,21 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private UserService userService;
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         OAuth2User principal = (OAuth2User) authentication.getPrincipal();
         
+        // Récupérer les infos de Google
+        String googleId = principal.getAttribute("sub");  // L'ID Google unique
         String email = principal.getAttribute("email");
         String name = principal.getAttribute("name");
+        String picture = principal.getAttribute("picture");
+        
+        // Sauvegarder ou mettre à jour l'utilisateur en base de données
+        userService.findOrCreateUser(googleId, email, name, picture);
         
         // Générer le JWT
         String token = jwtService.generateTokenFromOAuth2(email, name);
