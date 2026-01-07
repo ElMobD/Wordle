@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.HashMap;
 import java.util.List;
@@ -102,6 +103,14 @@ public class FriendController {
         }
     }
 
+    // Rechercher des utilisateurs par nom ou email
+    @GetMapping("/search")
+    public ResponseEntity<List<User>> searchUsers(@RequestParam("query") String query, Authentication authentication) {
+        Long userId = getUserId(authentication);
+        List<User> results = friendService.searchUsers(userId, query);
+        return ResponseEntity.ok(results);
+    }
+
     // Vérifier si un utilisateur est ami
     @GetMapping("/status/{friendId}")
     public ResponseEntity<Map<String, Object>> checkFriendStatus(@PathVariable Long friendId, Authentication authentication) {
@@ -110,19 +119,6 @@ public class FriendController {
         Map<String, Object> response = new HashMap<>();
         response.put("areFriends", areFriends);
         return ResponseEntity.ok(response);
-    }
-
-    // Rechercher des utilisateurs (simple)
-    @GetMapping("/search")
-    public ResponseEntity<List<User>> searchUsers(@RequestParam String query, Authentication authentication) {
-        Long userId = getUserId(authentication);
-        List<User> users = userRepository.findAll().stream()
-                .filter(u -> (u.getEmail().toLowerCase().contains(query.toLowerCase())
-                        || (u.getName() != null && u.getName().toLowerCase().contains(query.toLowerCase())))
-                        && !u.getId().equals(userId))
-                .limit(10)
-                .toList();
-        return ResponseEntity.ok(users);
     }
 
     private Long getUserId(Authentication authentication) {

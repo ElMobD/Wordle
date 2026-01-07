@@ -28,6 +28,14 @@ const closeHelpModal = () => {
   isHelpModalOpen.value = false
 }
 
+const goToContact = () => {
+  router.push('/contact')
+}
+
+const goToSettings = () => {
+  router.push('/settings')
+}
+
 const handleLogout = () => {
   logout()
   router.push('/login')
@@ -61,9 +69,10 @@ onMounted(async () => {
     <!-- Header -->
     <Header 
       title="PARAMÈTRES"
-      :show-settings="false"
       @home="goHome"
+      @settings="goToSettings"
       @help="showHelp"
+      @contact="goToContact"
     />
 
     <!-- Contenu principal -->
@@ -137,7 +146,6 @@ onMounted(async () => {
         <!-- User Tab -->
         <div v-if="activeTab === 'user'" class="tab-content">
           <div class="glass-card">
-            <h2 class="card-title">Informations du profil</h2>
             
             <div v-if="loading" class="loading-state">
               Chargement...
@@ -178,10 +186,10 @@ onMounted(async () => {
                 <p class="field-value">{{ userProfile.name || 'Non disponible' }}</p>
               </div>
               
-              <div class="profile-field">
+              <!--<div class="profile-field">
                 <label class="field-label">ID Utilisateur</label>
                 <p class="field-value field-value-mono">{{ userProfile.sub || 'Non disponible' }}</p>
-              </div>
+              </div>-->
               
               <div class="profile-field">
                 <label class="field-label">Statistiques</label>

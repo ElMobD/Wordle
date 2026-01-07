@@ -38,9 +38,9 @@ public class FriendService {
         User receiver = userRepository.findById(receiverId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur destinataire non trouvé"));
 
-        // Déjà une demande existante dans un sens ou l'autre
-        Optional<FriendRequest> existing = friendRequestRepository.findBetweenUsers(requesterId, receiverId);
-        if (existing.isPresent()) {
+        // Vérifier s'il y a une demande existante dans un sens ou l'autre (toutes sont PENDING)
+        List<FriendRequest> existingBetween = friendRequestRepository.findAllBetweenUsers(requesterId, receiverId);
+        if (!existingBetween.isEmpty()) {
             throw new IllegalArgumentException("Une demande d'amitié existe déjà entre ces utilisateurs");
         }
 
@@ -63,11 +63,13 @@ public class FriendService {
             throw new IllegalArgumentException("Vous ne pouvez pas accepter cette demande");
         }
 
-        friendRequest.setStatus(FriendRequest.FriendRequestStatus.ACCEPTED);
-        friendRequestRepository.save(friendRequest);
-
         Friendship friendship = new Friendship(friendRequest.getRequester(), friendRequest.getReceiver());
-        return friendshipRepository.save(friendship);
+        friendshipRepository.save(friendship);
+        
+        // Supprimer la demande une fois acceptée
+        friendRequestRepository.delete(friendRequest);
+        
+        return friendship;
     }
 
     // Rejeter une demande d'amitié
@@ -79,8 +81,8 @@ public class FriendService {
             throw new IllegalArgumentException("Vous ne pouvez pas rejeter cette demande");
         }
 
-        friendRequest.setStatus(FriendRequest.FriendRequestStatus.REJECTED);
-        friendRequestRepository.save(friendRequest);
+        // Supprimer la demande au lieu de la marquer comme rejetée
+        friendRequestRepository.delete(friendRequest);
     }
 
     // Supprimer un ami
@@ -100,14 +102,23 @@ public class FriendService {
                 .collect(Collectors.toList());
     }
 
+        // Recherche d'utilisateurs par nom ou email (exclure l'utilisateur courant)
+        public List<User> searchUsers(Long currentUserId, String query) {
+        List<User> users = userRepository
+            .findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(query, query);
+        return users.stream()
+            .filter(u -> !u.getId().equals(currentUserId))
+            .collect(Collectors.toList());
+        }
+
     // Demandes en attente reçues
     public List<FriendRequest> getPendingFriendRequests(Long userId) {
         return friendRequestRepository.findByReceiverIdAndStatus(userId, FriendRequest.FriendRequestStatus.PENDING);
     }
 
-    // Demandes envoyées
+    // Demandes envoyées (seulement PENDING)
     public List<FriendRequest> getSentFriendRequests(Long userId) {
-        return friendRequestRepository.findByRequesterId(userId);
+        return friendRequestRepository.findByRequesterIdAndStatus(userId, FriendRequest.FriendRequestStatus.PENDING);
     }
 
     // Vérifier si deux utilisateurs sont amis

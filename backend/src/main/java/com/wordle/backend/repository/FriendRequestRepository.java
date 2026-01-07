@@ -18,10 +18,12 @@ public interface FriendRequestRepository extends JpaRepository<FriendRequest, Lo
     
     List<FriendRequest> findByRequesterId(Long requesterId);
     
+    List<FriendRequest> findByRequesterIdAndStatus(Long requesterId, FriendRequest.FriendRequestStatus status);
+    
     Optional<FriendRequest> findByRequesterIdAndReceiverId(Long requesterId, Long receiverId);
     
     @Query("SELECT fr FROM FriendRequest fr WHERE " +
-           "(fr.requester.id = :userId1 AND fr.receiver.id = :userId2) OR " +
-           "(fr.requester.id = :userId2 AND fr.receiver.id = :userId1)")
-    Optional<FriendRequest> findBetweenUsers(@Param("userId1") Long userId1, @Param("userId2") Long userId2);
+           "((fr.requester.id = :userId1 AND fr.receiver.id = :userId2) OR " +
+           "(fr.requester.id = :userId2 AND fr.receiver.id = :userId1))")
+    List<FriendRequest> findAllBetweenUsers(@Param("userId1") Long userId1, @Param("userId2") Long userId2);
 }

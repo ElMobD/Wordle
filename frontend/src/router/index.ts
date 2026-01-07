@@ -5,6 +5,7 @@ import Callback from '../views/Callback.vue'
 import Homepage from '../views/Homepage.vue'
 import Settings from '../views/Settings.vue'
 import DailyWord from '../views/DailyWord.vue'
+import Contact from '../views/Contact.vue'
 
 const routes = [
   {
@@ -30,6 +31,11 @@ const routes = [
   {
     path: '/daily-word',
     component: DailyWord,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/contact',
+    component: Contact,
     meta: { requiresAuth: true }
   },
   {

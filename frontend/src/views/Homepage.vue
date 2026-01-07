@@ -22,6 +22,10 @@ const closeHelpModal = () => {
 const goHome = () => {
   router.push('/homepage')
 }
+
+const goToContact = () => {
+  router.push('/contact')
+}
 </script>
 
 <template>
@@ -35,6 +39,7 @@ const goHome = () => {
       @home="goHome"
       @settings="goToSettings"
       @help="showHelp"
+      @contact="goToContact"
     />
 
     <!-- Contenu principal -->

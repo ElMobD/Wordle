@@ -29,6 +29,10 @@ const goHome = () => {
   router.push('/homepage')
 }
 
+const goToContact = () => {
+  router.push('/contact')
+}
+
 const handleKeyPress = (key: string) => {
   if (key === 'ENTER') {
     if (currentGuess.value.length === wordLength) {
@@ -54,6 +58,7 @@ const handleKeyPress = (key: string) => {
       @home="goHome"
       @settings="goToSettings"
       @help="showHelp"
+      @contact="goToContact"
     />
 
     <!-- Contenu principal -->
