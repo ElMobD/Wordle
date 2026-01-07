@@ -29,7 +29,7 @@ public class UserController {
         }
 
         // Le principal contient l'email (String)
-        String email = (String) authentication.getPrincipal();
+        //String email = (String) authentication.getPrincipal();
         
         // Le token JWT est stocké dans les détails
         String token = (String) authentication.getDetails();
