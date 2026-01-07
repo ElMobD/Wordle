@@ -3,9 +3,15 @@ import { useRouter } from 'vue-router'
 import { ref } from 'vue'
 import Header from '../components/Header.vue'
 import Modal from '../components/Modal.vue'
+import WordleGrid from '../components/WordleGrid.vue'
+import WordleKeyboard from '../components/WordleKeyboard.vue'
 
 const router = useRouter()
 const isHelpModalOpen = ref(false)
+const guesses = ref<string[]>([])
+const currentGuess = ref('')
+const maxGuesses = 6
+const wordLength = 5
 
 const goToSettings = () => {
   router.push('/settings')
@@ -21,6 +27,19 @@ const closeHelpModal = () => {
 
 const goHome = () => {
   router.push('/homepage')
+}
+
+const handleKeyPress = (key: string) => {
+  if (key === 'ENTER') {
+    if (currentGuess.value.length === wordLength) {
+      guesses.value.push(currentGuess.value)
+      currentGuess.value = ''
+    }
+  } else if (key === 'BACKSPACE') {
+    currentGuess.value = currentGuess.value.slice(0, -1)
+  } else if (currentGuess.value.length < wordLength) {
+    currentGuess.value += key
+  }
 }
 </script>
 
@@ -39,9 +58,19 @@ const goHome = () => {
 
     <!-- Contenu principal -->
     <main class="main-content">
-      <div class="coming-soon">
-        <h2>Prochainement</h2>
-        <p>Le jeu du mot du jour arrive très bientôt !</p>
+      <div class="game-container">
+        <!-- Grille Wordle -->
+        <WordleGrid 
+          :guesses="guesses"
+          :current-guess="currentGuess"
+          :max-guesses="maxGuesses"
+          :word-length="wordLength"
+        />
+        
+        <!-- Clavier -->
+        <WordleKeyboard 
+          @key-press="handleKeyPress"
+        />
       </div>
     </main>
 
@@ -155,26 +184,21 @@ const goHome = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   flex: 1;
-  padding: 2rem;
+  padding: 1rem;
+  overflow-y: auto;
 }
 
-.coming-soon {
-  text-align: center;
-  color: white;
-}
-
-.coming-soon h2 {
-  font-size: 2rem;
-  margin: 0 0 1rem 0;
-  font-weight: 700;
-}
-
-.coming-soon p {
-  font-size: 1.125rem;
-  opacity: 0.9;
-  margin: 0;
+.game-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 600px;
+  height: 100%;
+  gap: 1rem;
 }
 
 /* Styles du contenu d'aide */

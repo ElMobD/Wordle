@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Variables CSS pour les thèmes */
+:root[data-theme="light"] {
+  --bg-gradient-start: #3100F6;
+  --bg-gradient-end: #F50000;
+  --overlay-color: rgba(255, 255, 255, 0.03);
+}
+
+:root[data-theme="dark"] {
+  --bg-gradient-start: #0F172A;
+  --bg-gradient-end: #1E293B;
+  --overlay-color: rgba(0, 0, 0, 0.2);
+}
+
 /* Fond dégradé global fixe pour toute l'application */
 html, body {
   margin: 0;
@@ -9,8 +22,9 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: linear-gradient(180deg, #3100F6 0%, #F50000 100%);
+  background: linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
   background-attachment: fixed;
+  transition: background 0.3s ease;
 }
 
 #app {

@@ -2,12 +2,14 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
+import { useTheme } from '../composables/useTheme'
 import { authenticatedFetch } from '../utils/api'
 import Modal from '../components/Modal.vue'
 import Header from '../components/Header.vue'
 
 const router = useRouter()
 const { logout } = useAuth()
+const { theme, toggleTheme, isDark } = useTheme()
 const activeTab = ref<'settings' | 'user'>('settings')
 const userProfile = ref<any>(null)
 const loading = ref(false)
@@ -86,14 +88,33 @@ onMounted(async () => {
         <!-- Settings Tab -->
         <div v-if="activeTab === 'settings'" class="tab-content">
           <div class="glass-card">
+            <h2 class="card-title">Apparence</h2>
+            
+            <div class="settings-list">
+              <div class="setting-item theme-setting">
+                <div class="setting-info">
+                  <label class="setting-label">Thème</label>
+                  <p class="setting-description">{{ isDark() ? 'Mode sombre' : 'Mode clair' }}</p>
+                </div>
+                <button 
+                  @click="toggleTheme"
+                  class="theme-toggle-button"
+                >
+                  <svg v-if="isDark()" xmlns="http://www.w3.org/2000/svg" class="theme-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" class="theme-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass-card">
             <h2 class="card-title">Paramètres de jeu</h2>
             
             <div class="settings-list">
-              <div class="setting-item">
-                <label class="setting-label">Mode sombre</label>
-                <input type="checkbox" class="setting-checkbox" checked disabled />
-              </div>
-              
               <div class="setting-item">
                 <label class="setting-label">Son</label>
                 <input type="checkbox" class="setting-checkbox" checked />
@@ -412,10 +433,54 @@ onMounted(async () => {
   justify-content: space-between;
 }
 
+.setting-item.theme-setting {
+  padding: 0.5rem 0;
+}
+
+.setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .setting-label {
   color: white;
   font-size: 1rem;
   font-weight: 500;
+}
+
+.setting-description {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.theme-toggle-button {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  border-radius: 12px;
+  cursor: pointer;
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.theme-toggle-button:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.05);
+}
+
+.theme-toggle-button:active {
+  transform: scale(0.95);
+}
+
+.theme-icon {
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .setting-checkbox {
