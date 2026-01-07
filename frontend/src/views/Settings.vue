@@ -36,6 +36,12 @@ const goToSettings = () => {
   router.push('/settings')
 }
 
+const goToProfile = () => {
+  activeTab.value = 'user'
+  // Mettre à jour l'URL sans recharger la page
+  router.replace({ query: { tab: 'profil' } })
+}
+
 const handleLogout = () => {
   logout()
   router.push('/login')
@@ -43,6 +49,13 @@ const handleLogout = () => {
 
 onMounted(async () => {
   console.log('Settings mounted')
+  
+  // Vérifier si on doit ouvrir l'onglet profil
+  const route = router.currentRoute.value
+  if (route.query.tab === 'profil') {
+    activeTab.value = 'user'
+  }
+  
   loading.value = true
   error.value = null
   try {
@@ -73,6 +86,7 @@ onMounted(async () => {
       @settings="goToSettings"
       @help="showHelp"
       @contact="goToContact"
+      @profile="goToProfile"
     />
 
     <!-- Contenu principal -->

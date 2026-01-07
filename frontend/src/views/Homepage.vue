@@ -26,6 +26,10 @@ const goHome = () => {
 const goToContact = () => {
   router.push('/contact')
 }
+
+const goToProfile = () => {
+  router.push('/settings?tab=profil')
+}
 </script>
 
 <template>
@@ -40,6 +44,7 @@ const goToContact = () => {
       @settings="goToSettings"
       @help="showHelp"
       @contact="goToContact"
+      @profile="goToProfile"
     />
 
     <!-- Contenu principal -->

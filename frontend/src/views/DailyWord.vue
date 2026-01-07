@@ -33,6 +33,10 @@ const goToContact = () => {
   router.push('/contact')
 }
 
+const goToProfile = () => {
+  router.push('/settings?tab=profil')
+}
+
 const handleKeyPress = (key: string) => {
   if (key === 'ENTER') {
     if (currentGuess.value.length === wordLength) {
@@ -59,6 +63,7 @@ const handleKeyPress = (key: string) => {
       @settings="goToSettings"
       @help="showHelp"
       @contact="goToContact"
+      @profile="goToProfile"
     />
 
     <!-- Contenu principal -->

@@ -10,6 +10,7 @@ const router = useRouter()
 const goHome = () => router.push('/homepage')
 const goSettings = () => router.push('/settings')
 const goToContact = () => router.push('/contact')
+const goToProfile = () => router.push('/settings?tab=profil')
 
 interface User {
   id: number
@@ -231,6 +232,7 @@ onMounted(async () => {
       @settings="goSettings"
       @help="showHelp"
       @contact="goToContact"
+      @profile="goToProfile"
     />
     
     <main class="friends-content">
