@@ -153,8 +153,6 @@ const sendFriendRequest = async (userId: number) => {
       throw new Error('Erreur lors de l\'envoi')
     }
     showNotification('Demande d\'amitié envoyée', 'success')
-    searchResults.value = []
-    searchUsername.value = ''
     await loadSentRequests()
   } catch (err) {
     showNotification('Erreur lors de l\'envoi', 'error')
