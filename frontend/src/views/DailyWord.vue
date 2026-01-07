@@ -25,13 +25,13 @@ const goHome = () => {
 </script>
 
 <template>
-  <div class="homepage-wrapper">
+  <div class="dailyword-wrapper">
     <!-- Couche d'atténuation du gradient -->
     <div class="gradient-overlay"></div>
 
     <!-- Header -->
     <Header 
-      title="WORDLE+"
+      title="MOT DU JOUR"
       @home="goHome"
       @settings="goToSettings"
       @help="showHelp"
@@ -39,12 +39,10 @@ const goHome = () => {
 
     <!-- Contenu principal -->
     <main class="main-content">
-      <button 
-        @click="router.push('/daily-word')"
-        class="play-button"
-      >
-        Mot du jour
-      </button>
+      <div class="coming-soon">
+        <h2>Prochainement</h2>
+        <p>Le jeu du mot du jour arrive très bientôt !</p>
+      </div>
     </main>
 
     <!-- Modal d'aide -->
@@ -73,9 +71,10 @@ const goHome = () => {
     </Modal>
   </div>
 </template>
+
 <style scoped>
 /* Wrapper principal */
-.homepage-wrapper {
+.dailyword-wrapper {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -89,130 +88,93 @@ const goHome = () => {
   inset: 0;
   background: rgba(255, 255, 255, 0.03);
   pointer-events: none;
+  z-index: 0;
 }
 
 /* Header avec effet glass */
 .glass-header {
   position: relative;
+  z-index: 10;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   padding: 1.5rem 2rem;
   background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(60px);
-  -webkit-backdrop-filter: blur(60px);
-  border-bottom: 0.5px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
-/* Titre du header */
 .header-title {
-  font-size: 1.75rem;
-  font-weight: 700;
   color: white;
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin: 0;
+  text-align: center;
+  flex: 1;
   letter-spacing: 0.05em;
 }
 
-/* Actions du header */
 .header-actions {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
-/* Boutons icônes */
 .icon-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 12px;
+  cursor: pointer;
+  padding: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.625rem;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  border: 0.5px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  color: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
 }
 
 .icon-button:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
   transform: scale(1.05);
 }
 
-.icon-button:active {
-  transform: scale(0.95);
+.back-button {
+  margin-right: 1rem;
 }
 
 .icon {
-  width: 1.375rem;
-  height: 1.375rem;
-  stroke-width: 2;
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 /* Contenu principal */
 .main-content {
   position: relative;
-  flex: 1;
+  z-index: 5;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  flex: 1;
   padding: 2rem;
 }
 
-/* Bouton principal "Mot du jour" */
-.play-button {
-  padding: 3rem 5rem;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(60px);
-  -webkit-backdrop-filter: blur(60px);
-  border: 0.5px solid rgba(255, 255, 255, 0.25);
-  border-radius: 28px;
+.coming-soon {
+  text-align: center;
   color: white;
-  font-size: 3rem;
+}
+
+.coming-soon h2 {
+  font-size: 2rem;
+  margin: 0 0 1rem 0;
   font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 
-    0 20px 60px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-.play-button:hover {
-  background: rgba(255, 255, 255, 0.18);
-  transform: scale(1.02);
-  box-shadow: 
-    0 24px 70px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
-}
-
-.play-button:active {
-  transform: scale(0.98);
-  box-shadow: 
-    0 16px 50px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .glass-header {
-    padding: 1.25rem 1.5rem;
-  }
-
-  .header-title {
-    font-size: 1.5rem;
-  }
-
-  .icon {
-    width: 1.25rem;
-    height: 1.25rem;
-  }
-
-  .play-button {
-    padding: 2.5rem 4rem;
-    font-size: 2.25rem;
-    border-radius: 24px;
-  }
+.coming-soon p {
+  font-size: 1.125rem;
+  opacity: 0.9;
+  margin: 0;
 }
 
 /* Styles du contenu d'aide */
@@ -293,10 +255,12 @@ const goHome = () => {
     padding: 0.5rem;
   }
 
-  .play-button {
-    padding: 2rem 3rem;
-    font-size: 1.75rem;
-    border-radius: 20px;
+  .coming-soon h2 {
+    font-size: 1.5rem;
+  }
+
+  .coming-soon p {
+    font-size: 1rem;
   }
 }
 </style>
