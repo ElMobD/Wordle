@@ -40,7 +40,7 @@ const searchLoading = ref(false)
 const selectedUser = ref<User | null>(null)
 const isUserModalOpen = ref(false)
 const notification = ref<{ message: string; type: 'success' | 'error' } | null>(null)
-const notificationTimeout = ref<NodeJS.Timeout | null>(null)
+const notificationTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 
 const showHelp = () => {
   isHelpModalOpen.value = true
