@@ -23,7 +23,7 @@ export function useAuth() {
     localStorage.removeItem('token')
   }
 
-  const checkAuth = () => {
+  const checkAuth = async () => {
     const stored = localStorage.getItem('isAuthenticated')
     const storedToken = localStorage.getItem('token')
     const storedUser = localStorage.getItem('user')
@@ -33,6 +33,24 @@ export function useAuth() {
       isAuthenticated.value = true
       token.value = storedToken
       user.value = JSON.parse(storedUser)
+      
+      // Vérifier auprès du serveur que l'utilisateur existe toujours
+      try {
+        const response = await fetch('http://localhost:8080/api/user/profile', {
+          headers: {
+            'Authorization': `Bearer ${storedToken}`
+          }
+        })
+        
+        if (!response.ok) {
+          // L'utilisateur n'existe plus ou le token est invalide
+          logout()
+        }
+        // Si ok, l'utilisateur est toujours valide
+      } catch (error) {
+        // Erreur réseau, on garde l'authentification pour l'instant
+        console.error('Erreur lors de la vérification d\'authentification:', error)
+      }
     } else {
       // Si l'un manque, on considère que c'est incohérent et on nettoie tout
       isAuthenticated.value = false

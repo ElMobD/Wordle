@@ -52,11 +52,11 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const { isAuthenticated, checkAuth } = useAuth()
   
-  // Vérifier l'état d'authentification
-  checkAuth()
+  // Vérifier l'état d'authentification (y compris serveur)
+  await checkAuth()
   
   // Si l'utilisateur essaie d'accéder à une route protégée sans être connecté
   if (to.meta.requiresAuth && !isAuthenticated.value) {
