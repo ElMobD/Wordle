@@ -10,17 +10,23 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS games (
   id UUID PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  game_type VARCHAR(20) NOT NULL CHECK (game_type IN ('DAILY', 'RANDOM')),
   answer VARCHAR(10) NOT NULL,
   max_attempts INT NOT NULL DEFAULT 6,
-  status VARCHAR(20) NOT NULL DEFAULT 'IN_PROGRESS'
+  attempts_used INT NOT NULL DEFAULT 0,
+  status VARCHAR(20) NOT NULL DEFAULT 'IN_PROGRESS' CHECK (status IN ('IN_PROGRESS', 'WON', 'LOST')),
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  completed_at TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS guesses (
-  id SERIAL PRIMARY KEY,
-  game_id UUID REFERENCES games(id) ON DELETE CASCADE,
+  id BIGSERIAL PRIMARY KEY,
+  game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
   attempt_no INT NOT NULL,
   guess VARCHAR(10) NOT NULL,
-  result_mask VARCHAR(10) NOT NULL
+  result_mask VARCHAR(10) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS friend_requests (
@@ -42,3 +48,9 @@ CREATE TABLE IF NOT EXISTS friendships (
   UNIQUE(user1_id, user2_id),
   CHECK (user1_id < user2_id)
 );
+
+-- Indices pour optimiser les requêtes
+CREATE INDEX IF NOT EXISTS idx_games_user_id ON games(user_id);
+CREATE INDEX IF NOT EXISTS idx_games_game_type ON games(game_type);
+CREATE INDEX IF NOT EXISTS idx_games_created_at ON games(created_at);
+CREATE INDEX IF NOT EXISTS idx_guesses_game_id ON guesses(game_id);
