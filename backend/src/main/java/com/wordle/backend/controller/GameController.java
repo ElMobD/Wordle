@@ -97,8 +97,17 @@ public class GameController {
         response.put("createdAt", game.getCreatedAt());
         response.put("completedAt", game.getCompletedAt());
 
+        // Récupérer les guesses via le repository (évite les problèmes lazy loading)
         List<Guess> guesses = guessRepository.findByGameIdOrderByAttemptNo(game.getId());
-        response.put("guesses", guesses);
+        List<Map<String, Object>> simplifiedGuesses = new java.util.ArrayList<>();
+        for (Guess guess : guesses) {
+            Map<String, Object> guessMap = new HashMap<>();
+            guessMap.put("attemptNo", guess.getAttemptNo());
+            guessMap.put("word", guess.getGuess());
+            guessMap.put("mask", guess.getResultMask());
+            simplifiedGuesses.add(guessMap);
+        }
+        response.put("guesses", simplifiedGuesses);
 
         return response;
     }

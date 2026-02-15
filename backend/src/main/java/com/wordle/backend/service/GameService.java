@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -36,10 +37,23 @@ public class GameService {
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
 
         if (gameType == Game.GameType.DAILY) {
-            Optional<Game> existing = gameRepository
-                    .findByUserIdAndGameTypeAndStatus(userId, gameType, Game.GameStatus.IN_PROGRESS);
-            if (existing.isPresent()) {
-                return existing.get();
+            // Vérifier que le joueur n'a pas déjà un daily d'aujourd'hui
+            // Le daily est global et change chaque jour, donc on cherche une partie DAILY
+            // créée aujourd'hui pour cet utilisateur
+            LocalDate today = LocalDate.now();
+            LocalDateTime startOfDay = today.atStartOfDay();
+            LocalDateTime endOfDay = today.atTime(23, 59, 59);
+            
+            Optional<Game> dailyToday = gameRepository.findByUserIdAndGameTypeAndCreatedAtBetween(
+                    userId,
+                    gameType,
+                    startOfDay,
+                    endOfDay
+            );
+            
+            if (dailyToday.isPresent()) {
+                // L'utilisateur a déjà un daily aujourd'hui, on le retourne
+                return dailyToday.get();
             }
         }
 
