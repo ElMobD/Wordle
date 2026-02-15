@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+interface Guess {
+  word: string
+  mask: string
+}
+
 interface Props {
-  guesses: string[]
+  guesses: Guess[] | string[]
   currentGuess: string
   maxGuesses?: number
   wordLength?: number
@@ -13,15 +18,30 @@ const props = withDefaults(defineProps<Props>(), {
   wordLength: 5
 })
 
+const getMaskColor = (letter: string, maskChar: string | undefined) => {
+  if (maskChar === '2') return 'green'   // Bon endroit
+  if (maskChar === '1') return 'yellow'  // Mauvais endroit
+  return 'gray'                           // Absent
+}
+
 // Générer les lignes de la grille
 const gridRows = computed(() => {
-  const rows = []
+  const rows: any[] = []
   
   // Ajouter les tentatives déjà effectuées
   for (let i = 0; i < props.guesses.length; i++) {
     const guess = props.guesses[i]
+    const isGuessObject = typeof guess === 'object' && guess !== null && 'word' in guess
+    const word = isGuessObject ? (guess as Guess).word : (guess as string)
+    const mask = isGuessObject ? (guess as Guess).mask : ''
+    
+    const letters = word.split('').map((letter, idx) => ({
+      char: letter,
+      color: mask && mask.length > idx ? getMaskColor(letter, mask[idx]) : 'none'
+    }))
+    
     rows.push({
-      letters: guess ? guess.split('') : [],
+      letters,
       isCurrentGuess: false,
       isSubmitted: true
     })
@@ -29,9 +49,12 @@ const gridRows = computed(() => {
   
   // Ajouter la tentative en cours
   if (props.guesses.length < props.maxGuesses) {
-    const currentLetters = props.currentGuess.split('')
+    const currentLetters = props.currentGuess.split('').map(char => ({
+      char,
+      color: 'none'
+    }))
     while (currentLetters.length < props.wordLength) {
-      currentLetters.push('')
+      currentLetters.push({ char: '', color: 'none' })
     }
     rows.push({
       letters: currentLetters,
@@ -44,7 +67,7 @@ const gridRows = computed(() => {
   const emptyRowsCount = props.maxGuesses - rows.length
   for (let i = 0; i < emptyRowsCount; i++) {
     rows.push({
-      letters: Array(props.wordLength).fill(''),
+      letters: Array(props.wordLength).fill({ char: '', color: 'none' }),
       isCurrentGuess: false,
       isSubmitted: false
     })
@@ -62,18 +85,21 @@ const gridRows = computed(() => {
       class="grid-row"
     >
       <div 
-        v-for="(letter, letterIndex) in row.letters"
+        v-for="(letterObj, letterIndex) in row.letters"
         :key="letterIndex"
         :class="[
           'grid-cell',
           {
-            'has-letter': letter !== '',
+            'has-letter': letterObj.char !== '',
             'is-current': row.isCurrentGuess,
-            'is-submitted': row.isSubmitted
+            'is-submitted': row.isSubmitted,
+            'color-green': letterObj.color === 'green',
+            'color-yellow': letterObj.color === 'yellow',
+            'color-gray': letterObj.color === 'gray'
           }
         ]"
       >
-        {{ letter }}
+        {{ letterObj.char }}
       </div>
     </div>
   </div>
@@ -122,6 +148,22 @@ const gridRows = computed(() => {
 .grid-cell.is-submitted {
   background: rgba(107, 114, 128, 0.4);
   border-color: rgba(107, 114, 128, 0.6);
+}
+
+/* Couleurs du mask */
+.grid-cell.color-green {
+  background: rgba(34, 197, 94, 0.7);
+  border-color: rgba(34, 197, 94, 1);
+}
+
+.grid-cell.color-yellow {
+  background: rgba(202, 138, 4, 0.7);
+  border-color: rgba(202, 138, 4, 1);
+}
+
+.grid-cell.color-gray {
+  background: rgba(107, 114, 128, 0.7);
+  border-color: rgba(107, 114, 128, 1);
 }
 
 @keyframes pop {

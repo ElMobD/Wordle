@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useAuth } from '../composables/useAuth'
+import { authenticatedFetch } from '../utils/api'
 import Header from '../components/Header.vue'
 import Modal from '../components/Modal.vue'
 import WordleGrid from '../components/WordleGrid.vue'
@@ -8,10 +10,72 @@ import WordleKeyboard from '../components/WordleKeyboard.vue'
 
 const router = useRouter()
 const isHelpModalOpen = ref(false)
-const guesses = ref<string[]>([])
+const guesses = ref<any[]>([])
 const currentGuess = ref('')
+const gameId = ref<string>('')
+const gameStatus = ref<'IN_PROGRESS' | 'WON' | 'LOST'>('IN_PROGRESS')
 const maxGuesses = 6
 const wordLength = 5
+const loading = ref(true)
+const error = ref('')
+
+// Créer ou récupérer une partie DAILY au chargement
+onMounted(async () => {
+  try {
+    const response = await authenticatedFetch('http://localhost:8080/api/games', {
+      method: 'POST',
+      body: JSON.stringify({ gameType: 'DAILY' })
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      gameId.value = data.id
+      guesses.value = data.guesses || []
+      gameStatus.value = data.status
+    } else {
+      error.value = 'Erreur lors du chargement de la partie'
+    }
+  } catch (err) {
+    error.value = 'Erreur réseau'
+    console.error(err)
+  } finally {
+    loading.value = false
+  }
+}
+)
+
+// Soumettre un mot à l'API
+const submitWord = async (word: string) => {
+  if (!gameId.value || gameStatus.value !== 'IN_PROGRESS') return
+  
+  try {
+    const response = await authenticatedFetch(
+      `http://localhost:8080/api/games/${gameId.value}/guess`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ word: word.toUpperCase() })
+      }
+    )
+    
+    if (response.ok) {
+      const data = await response.json()
+      guesses.value = data.guesses || []
+      gameStatus.value = data.status
+      
+      if (gameStatus.value === 'WON') {
+        alert('Bravo ! Vous avez gagné !')
+      } else if (gameStatus.value === 'LOST') {
+        alert('Dommage ! Vous avez perdu.')
+      }
+    } else {
+      const errData = await response.json()
+      error.value = errData.error || 'Erreur lors de la soumission'
+    }
+  } catch (err) {
+    error.value = 'Erreur réseau'
+    console.error(err)
+  }
+}
 
 const goToSettings = () => {
   router.push('/settings')
@@ -39,14 +103,14 @@ const goToProfile = () => {
 
 const handleKeyPress = (key: string) => {
   if (key === 'ENTER') {
-    if (currentGuess.value.length === wordLength) {
-      guesses.value.push(currentGuess.value)
+    if (currentGuess.value.length === wordLength && gameStatus.value === 'IN_PROGRESS') {
+      submitWord(currentGuess.value)
       currentGuess.value = ''
     }
   } else if (key === 'BACKSPACE') {
     currentGuess.value = currentGuess.value.slice(0, -1)
   } else if (currentGuess.value.length < wordLength) {
-    currentGuess.value += key
+    currentGuess.value += key.toUpperCase()
   }
 }
 </script>
@@ -66,8 +130,13 @@ const handleKeyPress = (key: string) => {
       @profile="goToProfile"
     />
 
+    <!-- Message d'erreur -->
+    <div v-if="error" class="error-banner">
+      {{ error }}
+    </div>
+
     <!-- Contenu principal -->
-    <main class="main-content">
+    <main class="main-content" v-if="!loading">
       <div class="game-container">
         <!-- Grille Wordle -->
         <WordleGrid 
@@ -80,9 +149,15 @@ const handleKeyPress = (key: string) => {
         <!-- Clavier -->
         <WordleKeyboard 
           @key-press="handleKeyPress"
+          :disabled="gameStatus !== 'IN_PROGRESS'"
         />
       </div>
     </main>
+
+    <!-- Loading -->
+    <div v-else class="loading-container">
+      <p>Chargement de la partie...</p>
+    </div>
 
     <!-- Modal d'aide -->
     <Modal 
@@ -270,6 +345,29 @@ const handleKeyPress = (key: string) => {
 .hint-item.gray {
   background-color: rgba(107, 114, 128, 0.2);
   color: #d1d5db;
+}
+
+/* Error banner */
+.error-banner {
+  position: relative;
+  z-index: 10;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.6);
+  color: #fca5a5;
+  padding: 1rem;
+  text-align: center;
+  border-radius: 8px;
+}
+
+/* Loading container */
+.loading-container {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: white;
 }
 
 @media (max-width: 480px) {

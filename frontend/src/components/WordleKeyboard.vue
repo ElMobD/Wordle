@@ -1,4 +1,12 @@
 <script setup lang="ts">
+interface Props {
+  disabled?: boolean
+}
+
+withDefaults(defineProps<Props>(), {
+  disabled: false
+})
+
 const emit = defineEmits<{
   keyPress: [key: string]
 }>()
@@ -27,9 +35,11 @@ const handleKeyPress = (key: string) => {
         :class="[
           'key',
           {
-            'key-special': key === 'ENTER' || key === 'BACKSPACE'
+            'key-special': key === 'ENTER' || key === 'BACKSPACE',
+            'key-disabled': disabled
           }
         ]"
+        :disabled="disabled"
         @click="handleKeyPress(key)"
       >
         <span v-if="key === 'BACKSPACE'">⌫</span>
@@ -73,10 +83,16 @@ const handleKeyPress = (key: string) => {
   justify-content: center;
 }
 
-.key:hover {
+.key:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.25);
   border-color: rgba(255, 255, 255, 0.5);
   transform: scale(1.05);
+}
+
+.key-disabled,
+.key:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .key:active {
