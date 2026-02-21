@@ -40,6 +40,14 @@ public class Game {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "session_id")
+    private GameSession session;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "session_round_id")
+    private GameSessionRound sessionRound;
+
     @OneToMany(mappedBy = "game", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<Guess> guesses;
 
@@ -141,6 +149,22 @@ public class Game {
 
     public void setCompletedAt(LocalDateTime completedAt) {
         this.completedAt = completedAt;
+    }
+
+    public GameSession getSession() {
+        return session;
+    }
+
+    public void setSession(GameSession session) {
+        this.session = session;
+    }
+
+    public GameSessionRound getSessionRound() {
+        return sessionRound;
+    }
+
+    public void setSessionRound(GameSessionRound sessionRound) {
+        this.sessionRound = sessionRound;
     }
 
     public List<Guess> getGuesses() {

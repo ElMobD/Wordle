@@ -40,6 +40,14 @@ public class WordService {
         return randomWords.get(random.nextInt(randomWords.size()));
     }
 
+    public String getRandomWordByLength(int length) {
+        List<String> candidates = getWordsByLength(length);
+        if (candidates.isEmpty()) {
+            return getRandomWord();
+        }
+        return candidates.get(random.nextInt(candidates.size()));
+    }
+
     public boolean isValidWord(String word) {
         if (word == null) {
             return false;
@@ -67,5 +75,23 @@ public class WordService {
             return words;
         }
         return words;
+    }
+
+    private List<String> getWordsByLength(int length) {
+        List<String> matches = new ArrayList<>();
+        for (String word : randomWords) {
+            if (word.length() == length) {
+                matches.add(word);
+            }
+        }
+        if (!matches.isEmpty()) {
+            return matches;
+        }
+        for (String word : dailyWords) {
+            if (word.length() == length) {
+                matches.add(word);
+            }
+        }
+        return matches;
     }
 }

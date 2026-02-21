@@ -19,6 +19,10 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
 
     List<Game> findByUserIdAndGameTypeOrderByCreatedAtDesc(Long userId, Game.GameType gameType);
 
+    Optional<Game> findBySessionRoundIdAndUserId(Long sessionRoundId, Long userId);
+
+    List<Game> findBySessionRoundId(Long sessionRoundId);
+
     // Trouver le daily de l'utilisateur créé aujourd'hui (peu importe son statut)
     @Query("SELECT g FROM Game g WHERE g.user.id = ?1 AND g.gameType = ?2 AND g.createdAt >= ?3 AND g.createdAt <= ?4")
     Optional<Game> findByUserIdAndGameTypeAndCreatedAtBetween(Long userId, Game.GameType gameType, LocalDateTime createdAfter, LocalDateTime createdBefore);
