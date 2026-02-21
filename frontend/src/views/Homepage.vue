@@ -49,12 +49,20 @@ const goToProfile = () => {
 
     <!-- Contenu principal -->
     <main class="main-content">
-      <button 
-        @click="router.push('/daily-word')"
-        class="play-button"
-      >
-        Mot du jour
-      </button>
+      <div class="buttons-container">
+        <button 
+          @click="router.push('/daily-word')"
+          class="play-button"
+        >
+          Mot du jour
+        </button>
+        <button 
+          @click="router.push('/multiplayer')"
+          class="play-button secondary"
+        >
+          Multijoueur
+        </button>
+      </div>
     </main>
 
     <!-- Modal d'aide -->
@@ -170,6 +178,14 @@ const goToProfile = () => {
   padding: 2rem;
 }
 
+/* Container des boutons */
+.buttons-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: center;
+}
+
 /* Bouton principal "Mot du jour" */
 .play-button {
   padding: 3rem 5rem;
@@ -186,6 +202,12 @@ const goToProfile = () => {
   box-shadow: 
     0 20px 60px rgba(0, 0, 0, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.play-button.secondary {
+  padding: 2.5rem 4rem;
+  font-size: 2.5rem;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .play-button:hover {

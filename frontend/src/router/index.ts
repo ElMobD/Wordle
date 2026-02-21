@@ -6,6 +6,7 @@ import Homepage from '../views/Homepage.vue'
 import Settings from '../views/Settings.vue'
 import DailyWord from '../views/DailyWord.vue'
 import Contact from '../views/Contact.vue'
+import Multiplayer from '../views/Multiplayer.vue'
 
 const routes = [
   {
@@ -36,6 +37,11 @@ const routes = [
   {
     path: '/contact',
     component: Contact,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/multiplayer',
+    component: Multiplayer,
     meta: { requiresAuth: true }
   },
   {
