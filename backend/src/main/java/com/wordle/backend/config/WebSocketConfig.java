@@ -13,8 +13,12 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Autowired
     private SimpleWebSocketHandler simpleWebSocketHandler;
 
+    @Autowired
+    private com.wordle.backend.websocket.LobbyWebSocketHandler lobbyWebSocketHandler;
+
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(simpleWebSocketHandler, "/socket").setAllowedOrigins("*");
+        registry.addHandler(lobbyWebSocketHandler, "/ws/lobby").setAllowedOrigins("*");
     }
 }

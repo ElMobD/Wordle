@@ -54,3 +54,35 @@ CREATE INDEX IF NOT EXISTS idx_games_user_id ON games(user_id);
 CREATE INDEX IF NOT EXISTS idx_games_game_type ON games(game_type);
 CREATE INDEX IF NOT EXISTS idx_games_created_at ON games(created_at);
 CREATE INDEX IF NOT EXISTS idx_guesses_game_id ON guesses(game_id);
+
+
+-- Table des sessions multijoueur
+CREATE TABLE IF NOT EXISTS sessions (
+  id UUID PRIMARY KEY,
+  code VARCHAR(16) UNIQUE NOT NULL, -- code d'invitation
+  host_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  rounds INT NOT NULL DEFAULT 5,
+  time_limit INT NOT NULL DEFAULT 60, -- secondes
+  word_length INT NOT NULL DEFAULT 5,
+  status VARCHAR(20) NOT NULL DEFAULT 'LOBBY' CHECK (status IN ('LOBBY', 'IN_PROGRESS', 'FINISHED', 'CANCELLED')),
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table des joueurs dans une session
+CREATE TABLE IF NOT EXISTS session_players (
+  session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  is_host BOOLEAN NOT NULL DEFAULT FALSE,
+  joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (session_id, user_id)
+);
+
+-- Table optionnelle pour le chat de session
+CREATE TABLE IF NOT EXISTS session_chat (
+  id BIGSERIAL PRIMARY KEY,
+  session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  message TEXT NOT NULL,
+  sent_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
