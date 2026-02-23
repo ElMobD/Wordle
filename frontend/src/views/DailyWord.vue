@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { ref, onMounted } from 'vue'
-import { useAuth } from '../composables/useAuth'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { authenticatedFetch } from '../utils/api'
 import Header from '../components/Header.vue'
 import Modal from '../components/Modal.vue'
@@ -10,6 +9,7 @@ import WordleKeyboard from '../components/WordleKeyboard.vue'
 
 const router = useRouter()
 const isHelpModalOpen = ref(false)
+const isResultModalOpen = ref(false)
 const guesses = ref<any[]>([])
 const currentGuess = ref('')
 const gameId = ref<string>('')
@@ -41,8 +41,15 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-}
-)
+  
+  // Ajouter l'écouteur de clavier physique
+  window.addEventListener('keydown', handlePhysicalKeyPress)
+})
+
+onUnmounted(() => {
+  // Nettoyer l'écouteur de clavier
+  window.removeEventListener('keydown', handlePhysicalKeyPress)
+})
 
 // Soumettre un mot à l'API
 const submitWord = async (word: string) => {
@@ -62,10 +69,8 @@ const submitWord = async (word: string) => {
       guesses.value = data.guesses || []
       gameStatus.value = data.status
       
-      if (gameStatus.value === 'WON') {
-        alert('Bravo ! Vous avez gagné !')
-      } else if (gameStatus.value === 'LOST') {
-        alert('Dommage ! Vous avez perdu.')
+      if (gameStatus.value === 'WON' || gameStatus.value === 'LOST') {
+        isResultModalOpen.value = true
       }
     } else {
       const errData = await response.json()
@@ -87,6 +92,10 @@ const showHelp = () => {
 
 const closeHelpModal = () => {
   isHelpModalOpen.value = false
+}
+
+const closeResultModal = () => {
+  isResultModalOpen.value = false
 }
 
 const goHome = () => {
@@ -111,6 +120,42 @@ const handleKeyPress = (key: string) => {
     currentGuess.value = currentGuess.value.slice(0, -1)
   } else if (currentGuess.value.length < wordLength) {
     currentGuess.value += key.toUpperCase()
+  }
+}
+
+// Gérer les touches du clavier physique
+const handlePhysicalKeyPress = (event: KeyboardEvent) => {
+  // Ignorer si un modal ou input est ouvert
+  const activeElement = document.activeElement as HTMLElement
+  if (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA') {
+    return
+  }
+  
+  // Ignorer si un modal est ouvert
+  if (isHelpModalOpen.value || isResultModalOpen.value) {
+    return
+  }
+  
+  const key = event.key.toUpperCase()
+  
+  // Gérer ENTER
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    handleKeyPress('ENTER')
+    return
+  }
+  
+  // Gérer BACKSPACE
+  if (event.key === 'Backspace') {
+    event.preventDefault()
+    handleKeyPress('BACKSPACE')
+    return
+  }
+  
+  // Gérer les lettres A-Z
+  if (key.length === 1 && /^[A-Z]$/.test(key)) {
+    event.preventDefault()
+    handleKeyPress(key)
   }
 }
 </script>
@@ -150,6 +195,7 @@ const handleKeyPress = (key: string) => {
         <WordleKeyboard 
           @key-press="handleKeyPress"
           :disabled="gameStatus !== 'IN_PROGRESS'"
+          :guesses="guesses"
         />
       </div>
     </main>
@@ -181,6 +227,38 @@ const handleKeyPress = (key: string) => {
           <div class="hint-item yellow">🟨 La lettre existe mais au mauvais endroit</div>
           <div class="hint-item gray">⬜ La lettre n'existe pas dans le mot</div>
         </div>
+      </div>
+    </Modal>
+
+    <!-- Modal de résultat -->
+    <Modal 
+      :is-open="isResultModalOpen"
+      :title="gameStatus === 'WON' ? '🎉 Victoire !' : '😔 Défaite'"
+      @close="closeResultModal"
+    >
+      <div class="result-content">
+        <div class="result-icon">
+          {{ gameStatus === 'WON' ? '✨' : '💡' }}
+        </div>
+        <p class="result-message">
+          {{ gameStatus === 'WON' 
+            ? `Bravo ! Vous avez trouvé le mot en ${guesses.length} essai${guesses.length > 1 ? 's' : ''} !` 
+            : 'Dommage ! Revenez demain pour un nouveau mot !' 
+          }}
+        </p>
+        <div class="result-stats">
+          <div class="stat">
+            <span class="stat-value">{{ guesses.length }}</span>
+            <span class="stat-label">Essais</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">{{ maxGuesses }}</span>
+            <span class="stat-label">Maximum</span>
+          </div>
+        </div>
+        <button @click="goHome" class="result-button">
+          Retour à l'accueil
+        </button>
       </div>
     </Modal>
   </div>
@@ -368,6 +446,76 @@ const handleKeyPress = (key: string) => {
   justify-content: center;
   flex: 1;
   color: white;
+}
+
+/* Result content */
+.result-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem 0;
+}
+
+.result-icon {
+  font-size: 4rem;
+  line-height: 1;
+}
+
+.result-message {
+  font-size: 1.125rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 0;
+}
+
+.result-stats {
+  display: flex;
+  gap: 2rem;
+  padding: 1rem 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  width: 100%;
+  justify-content: center;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.result-button {
+  background: rgba(99, 102, 241, 0.8);
+  border: 1px solid rgba(99, 102, 241, 1);
+  color: white;
+  padding: 0.75rem 2rem;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 1rem;
+}
+
+.result-button:hover {
+  background: rgba(99, 102, 241, 1);
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
 }
 
 @media (max-width: 480px) {
