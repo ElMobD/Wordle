@@ -22,8 +22,8 @@ public class RootController {
         return "C'est ok, l'api fonctionne!";
     }
 
-    // Catch-all 404 to éviter la redirection OAuth2 sur les routes inconnues
-    @RequestMapping("/**")
+    // Catch-all 404, mais on ignore explicitement les endpoints WebSocket
+    @RequestMapping(path = "/**", headers = {"!Upgrade"})
     public ResponseEntity<Map<String, Object>> notFound() {
         Map<String, Object> response = new HashMap<>();
         response.put("error", "Endpoint not found");
@@ -31,3 +31,5 @@ public class RootController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 }
+    // Optionnel : ignorer explicitement /socket et /ws pour les requêtes non-REST
+    // (Spring ne mappe pas les WebSocket sur les controllers REST, mais on évite tout conflit)
