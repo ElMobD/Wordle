@@ -17,7 +17,7 @@ ws.on('open', () => {
   console.log('Connecté au WebSocket!');
     ws.send(JSON.stringify({
         type: 'JOIN',
-        sessionCode: "B4B9F271"
+        sessionCode: "2829F530"
     }));
 // Exemple d'envoi d'un message dans la session (adapte le type/structure si besoin)
 /*setTimeout(() => {

@@ -55,13 +55,31 @@ public class LobbyService {
                 .stream()
                 .anyMatch(sp -> sp.getSession().getId().equals(session.getId()));
 
+        SessionPlayer sp = null;
         if (!already) {
-            SessionPlayer sp = new SessionPlayer();
+            sp = new SessionPlayer();
             sp.setId(new SessionPlayerId(session.getId(), user.getId()));
             sp.setSession(session);
             sp.setUser(user);
-            sp.setHost(false);
+            sp.setHost(session.getHost().getId().equals(user.getId()));
             sessionPlayerService.addPlayer(sp);
+        } else {
+            // Récupère le joueur existant si besoin
+            sp = sessionPlayerService.getSessionsByUser(user.getId())
+                .stream()
+                .filter(p -> p.getSession().getId().equals(session.getId()))
+                .findFirst()
+                .orElse(null);
+            // Tu peux alors mettre à jour sp ici
+            if (sp != null) {
+                // Met à jour le statut d'hôte si besoin
+                boolean isHost = session.getHost().getId().equals(user.getId());
+                if (sp.isHost() != isHost) {
+                    sp.setHost(isHost);
+                    sessionPlayerService.addPlayer(sp); 
+                }
+            }
+
         }
 
         return session;
