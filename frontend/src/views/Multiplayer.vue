@@ -83,7 +83,7 @@ const createSession = () => {
   // Attendre que la connexion soit ouverte avant d’envoyer
   const sendCreate = () => {
     send({
-      type: 'create',
+      type: 'CREATE',
       rounds: rounds.value,
       timeLimit: timeLimit.value,
       wordLength: wordLength.value

@@ -1,0 +1,78 @@
+package com.wordle.backend.application;
+
+import com.wordle.backend.model.Session;
+import com.wordle.backend.model.User;
+import com.wordle.backend.model.SessionPlayer;
+import com.wordle.backend.model.SessionPlayerId;
+import com.wordle.backend.model.SessionChat;
+import com.wordle.backend.service.SessionService;
+import com.wordle.backend.service.SessionPlayerService;
+import com.wordle.backend.service.SessionChatService;
+import org.springframework.stereotype.Service;
+import java.util.UUID;
+import java.time.LocalDateTime;
+
+@Service
+public class LobbyService {
+
+    private final SessionService sessionService;
+    private final SessionPlayerService sessionPlayerService;
+    private final SessionChatService sessionChatService;
+
+    public LobbyService(SessionService sessionService,
+                        SessionPlayerService sessionPlayerService,
+                        SessionChatService sessionChatService) {
+        this.sessionService = sessionService;
+        this.sessionPlayerService = sessionPlayerService;
+        this.sessionChatService = sessionChatService;
+    }
+
+    public Session createSession(User user, int rounds, int timeLimit, int wordLength) {
+
+        var activeSessionOpt = sessionService.getActiveSessionForUser(user.getId());
+        if (activeSessionOpt.isPresent()) {
+            String code = activeSessionOpt.get().getCode();
+            throw new IllegalStateException("User already has an active session;code=" + code);
+        }
+
+        Session session = new Session();
+        session.setHost(user);
+        session.setRounds(rounds);
+        session.setTimeLimit(timeLimit);
+        session.setWordLength(wordLength);
+        session.setStatus("LOBBY");
+        session.setCode(UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+
+        return sessionService.createSession(session);
+    }
+
+    public Session joinSession(User user, String code) {
+
+        Session session = sessionService.getSessionByCode(code)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found"));
+
+        boolean already = sessionPlayerService.getSessionsByUser(user.getId())
+                .stream()
+                .anyMatch(sp -> sp.getSession().getId().equals(session.getId()));
+
+        if (!already) {
+            SessionPlayer sp = new SessionPlayer();
+            sp.setId(new SessionPlayerId(session.getId(), user.getId()));
+            sp.setSession(session);
+            sp.setUser(user);
+            sp.setHost(false);
+            sessionPlayerService.addPlayer(sp);
+        }
+
+        return session;
+    }
+
+    public void saveChat(Session session, User user, String message) {
+        SessionChat chat = new SessionChat();
+        chat.setSession(session);
+        chat.setUser(user);
+        chat.setMessage(message);
+        chat.setSentAt(LocalDateTime.now());
+        sessionChatService.saveMessage(chat);
+    }
+}
