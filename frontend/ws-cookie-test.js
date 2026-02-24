@@ -16,6 +16,18 @@ const ws = new WebSocket('ws://localhost/ws/lobby', {
 ws.on('open', () => {
   console.log('Connecté au WebSocket!');
   ws.send(JSON.stringify({ type: 'join', sessionCode: '265276FC' }));
+  // ...dans ws.on('open')
+ws.send(JSON.stringify({ type: 'join', sessionCode: '265276FC' }));
+
+// Exemple d'envoi d'un message dans la session (adapte le type/structure si besoin)
+setTimeout(() => {
+  ws.send(JSON.stringify({
+    type: 'chat',
+    sessionCode: '265276FC',
+    message: 'Hello à tous !'
+  }));
+  console.log('Message envoyé dans la session !');
+}, 1000);
 });
 
 ws.on('message', (data) => {

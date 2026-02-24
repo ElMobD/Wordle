@@ -1,5 +1,7 @@
 package com.wordle.backend.websocket;
 
+import com.wordle.backend.model.SessionChat;
+import com.wordle.backend.service.SessionChatService;
 import com.wordle.backend.service.JwtValidator;
 import com.wordle.backend.service.UserService;
 import com.wordle.backend.model.User;
@@ -24,6 +26,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class LobbyWebSocketHandler extends TextWebSocketHandler {
+
+        @Autowired
+        private SessionChatService sessionChatService;
     // Map sessionCode -> Set of WebSocketSession
     private final Map<String, Set<WebSocketSession>> lobbySessions = new ConcurrentHashMap<>();
 
@@ -143,6 +148,8 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                 boolean isAlreadyPlayer = sessionPlayerService.getSessionsByUser(user.getId()).stream()
                         .anyMatch(sp -> sp.getSession().getId().equals(sessionEntity.getId()));
                 if (isHost || isAlreadyPlayer) {
+                    // Ajoute la WebSocket courante à la map lobbySessions même si déjà joueur/hôte
+                    lobbySessions.computeIfAbsent(sessionCode, k -> new HashSet<>()).add(session);
                     ObjectNode error = objectMapper.createObjectNode();
                     error.put("type", "error");
                     error.put("message", "You are already in this session.");
@@ -169,8 +176,13 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                 String chatMessage = node.get("message").asText();
                 Session sessionEntity = requireSessionOrError(sessionCode, session);
                 if (sessionEntity == null) return;
-                // Optionnel : sauvegarder le message en base (SessionChatService)
-                // sessionChatService.saveMessage(sessionCode, user, chatMessage);
+                // Sauvegarder le message en base
+                SessionChat chatEntity = new SessionChat();
+                chatEntity.setSession(sessionEntity);
+                chatEntity.setUser(user);
+                chatEntity.setMessage(chatMessage);
+                chatEntity.setSentAt(java.time.LocalDateTime.now());
+                sessionChatService.saveMessage(chatEntity);
 
                 ObjectNode chat = objectMapper.createObjectNode();
                 chat.put("type", "chat");
