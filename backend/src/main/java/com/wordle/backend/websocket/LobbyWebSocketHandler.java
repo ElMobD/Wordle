@@ -176,6 +176,15 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                 String chatMessage = node.get("message").asText();
                 Session sessionEntity = requireSessionOrError(sessionCode, session);
                 if (sessionEntity == null) return;
+                // Vérifie que la WebSocket courante est bien dans le lobby
+                Set<WebSocketSession> sessions = lobbySessions.get(sessionCode);
+                if (sessions == null || !sessions.contains(session)) {
+                    ObjectNode error = objectMapper.createObjectNode();
+                    error.put("type", "error");
+                    error.put("message", "You are not in this lobby.");
+                    session.sendMessage(new TextMessage(error.toString()));
+                    return;
+                }
                 // Sauvegarder le message en base
                 SessionChat chatEntity = new SessionChat();
                 chatEntity.setSession(sessionEntity);
@@ -211,7 +220,15 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        // Logique pour retirer le joueur du lobby
+        // Retirer la WebSocketSession du Set lobbySessions correspondant
+        lobbySessions.forEach((sessionCode, sessions) -> {
+            if (sessions.remove(session)) {
+                // Optionnel : supprimer la clé si le Set est vide
+                if (sessions.isEmpty()) {
+                    lobbySessions.remove(sessionCode);
+                }
+            }
+        });
     }
 
     // Méthode utilitaire pour envoyer un message à tous les joueurs d'une session
