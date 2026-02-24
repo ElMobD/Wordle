@@ -43,12 +43,31 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         // Authentification via header Authorization: Bearer <token>
+        System.out.println("[WebSocket] Headers: " + session.getHandshakeHeaders());
         String authHeader = session.getHandshakeHeaders().getFirst("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Missing or invalid Authorization header"));
+        String token = null;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+            System.out.println("[WebSocket] Authorization header reçu: " + authHeader);
+        } else {
+            // Essaye de récupérer le token depuis le cookie
+            String cookieHeader = session.getHandshakeHeaders().getFirst("cookie");
+            System.out.println("[WebSocket] Cookie header reçu: " + cookieHeader);
+            if (cookieHeader != null) {
+                for (String cookie : cookieHeader.split(";")) {
+                    String[] parts = cookie.trim().split("=", 2);
+                    if (parts.length == 2 && parts[0].equals("token")) {
+                        token = parts[1];
+                        System.out.println("[WebSocket] Token extrait du cookie: " + token);
+                        break;
+                    }
+                }
+            }
+        }
+        if (token == null) {
+            session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Missing or invalid Authorization token (header/cookie)"));
             return;
         }
-        String token = authHeader.substring(7);
         try {
             Claims claims = jwtValidator.validateToken(token);
             String email = claims.getSubject();
@@ -66,6 +85,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        System.out.println("[WebSocket] Message reçu: " + message.getPayload());
         User user = (User) session.getAttributes().get("user");
         try {
             JsonNode node = objectMapper.readTree(message.getPayload());

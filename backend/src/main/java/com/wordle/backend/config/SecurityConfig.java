@@ -29,7 +29,7 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(authz -> authz
-                  .requestMatchers("/", "/login**", "/auth/**", "/error", "/webjars/**", "/api/health", "/actuator/**", "/socket", "/socket/**").permitAll()
+                  .requestMatchers("/", "/login**", "/auth/**", "/error", "/webjars/**", "/api/health", "/actuator/**", "/socket", "/socket/**", "/ws/lobby", "/ws/lobby/**").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2

@@ -2,6 +2,7 @@
 import { onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
+import { setTokenCookie } from '../utils/cookie'
 
 const router = useRouter()
 const route = useRoute()
@@ -22,10 +23,9 @@ onMounted(async () => {
       
       if (response.ok) {
         const userData = await response.json()
-        
         // Stocke le token et l'user
         login(userData, token)
-        
+        setTokenCookie()
         // Redirige vers le dashboard
         router.push('/homepage')
       } else {
