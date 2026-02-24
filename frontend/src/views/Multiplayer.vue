@@ -1,7 +1,16 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ref } from 'vue'
 import Header from '../components/Header.vue'
+import { useLobbySocket } from '../composables/useLobbySocket'
+import { watch } from 'vue'
+import { C } from 'vue-router/dist/router-CWoNjPRp.mjs'
+
+// ...tes refs existantes...
+const { connect, send, isConnected, lastMessage, error, disconnect } = useLobbySocket()
+const sessionCode = ref<string | null>(null)
+const creationError = ref<string | null>(null)
 
 const router = useRouter()
 const mode = ref<'menu' | 'create' | 'join'>('menu')
@@ -40,9 +49,60 @@ const showHelp = () => {
   // TODO: implémenter modal aide
 }
 
+const rounds = ref(5)
+const timeLimit = ref(60)
+const wordLength = ref(5)
+
+const isFormValid = computed(() => {
+  return (
+    rounds.value >= 1 && rounds.value <= 20 &&
+    timeLimit.value >= 10 && timeLimit.value <= 300 &&
+    wordLength.value >= 4 && wordLength.value <= 8
+  )
+})
+
+// Surveille la réponse WebSocket
+watch(lastMessage, (msg) => {
+    console.log('WebSocket message reçu dans Vue:', msg)
+    if (!msg) return
+    if (msg.type === 'session_created') {
+        sessionCode.value = msg.sessionCode
+        // Tu peux afficher le code ou naviguer vers la salle d’attente
+    } else if (msg.type === 'error') {
+        creationError.value = msg.message
+    }
+})
+
 const createSession = () => {
-  // TODO: implémenter création de session
-  console.log('Créer une session')
+  if (!isFormValid.value) return
+  // TODO: implémenter création de session réelle (WebSocket)
+  console.log('Créer une session', { rounds: rounds.value, timeLimit: timeLimit.value, wordLength: wordLength.value })
+  creationError.value = null
+  sessionCode.value = null
+  if (!isConnected.value) connect()
+  // Attendre que la connexion soit ouverte avant d’envoyer
+  const sendCreate = () => {
+    send({
+      type: 'create',
+      rounds: rounds.value,
+      timeLimit: timeLimit.value,
+      wordLength: wordLength.value
+    })
+  }
+  if (isConnected.value) {
+    sendCreate()
+    console.log('Message de création envoyé')
+  } else {
+    // On attend l'ouverture effective
+    console.log('En attente de la connexion WebSocket pour envoyer la création...')
+    const stop = watch(isConnected, (ok) => {
+      if (ok) {
+        console.log('Connexion WebSocket établie, envoi du message de création...')
+        sendCreate()
+        stop()
+      }
+    })
+  }
 }
 
 const joinSession = () => {
@@ -82,14 +142,27 @@ const joinSession = () => {
         <h2 class="form-title">Créer une partie</h2>
         <p class="form-description">Configuration de la session multijoueur</p>
         
-        <div class="form-content">
-          <p class="placeholder-text">Formulaire de configuration à venir...</p>
+        <div class="form-content form-create-grid">
+          <div class="form-group">
+            <label for="rounds" class="form-label">Nombre de manches</label>
+            <input id="rounds" type="number" v-model.number="rounds" min="1" max="20" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label for="timeLimit" class="form-label">Temps par manche (secondes)</label>
+            <input id="timeLimit" type="number" v-model.number="timeLimit" min="10" max="300" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label for="wordLength" class="form-label">Longueur du mot</label>
+            <input id="wordLength" type="number" v-model.number="wordLength" min="4" max="8" class="form-input" />
+          </div>
         </div>
 
         <div class="form-actions">
           <button @click="backToMenu" class="btn-secondary">Retour</button>
-          <button @click="createSession" class="btn-primary">Créer</button>
+          <button @click="createSession" class="btn-primary" :disabled="!isFormValid">Créer</button>
         </div>
+
+      
       </div>
 
       <!-- Formulaire rejoindre -->
@@ -294,5 +367,36 @@ const joinSession = () => {
 .btn-primary:active:not(:disabled),
 .btn-secondary:active {
   transform: scale(0.98);
+}
+
+/* Formulaire création */
+.form-create-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.form-label {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+.form-input {
+    padding: 0.8rem 1.2rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    font-size: 1.1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.form-input:focus {
+    border-color: #fff;
+    background: rgba(255,255,255,0.13);
 }
 </style>

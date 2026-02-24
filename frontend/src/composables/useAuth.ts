@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { setTokenCookie, removeTokenCookie } from '../utils/tokenCookie'
 
 const isAuthenticated = ref(false)
 const user = ref<any>(null)
@@ -12,6 +13,7 @@ export function useAuth() {
     localStorage.setItem('isAuthenticated', 'true')
     localStorage.setItem('user', JSON.stringify(userData))
     localStorage.setItem('token', jwtToken)
+    setTokenCookie(jwtToken)
   }
 
   const logout = () => {
@@ -21,6 +23,7 @@ export function useAuth() {
     localStorage.removeItem('isAuthenticated')
     localStorage.removeItem('user')
     localStorage.removeItem('token')
+    removeTokenCookie()
   }
 
   const checkAuth = async () => {
@@ -33,7 +36,7 @@ export function useAuth() {
       isAuthenticated.value = true
       token.value = storedToken
       user.value = JSON.parse(storedUser)
-      
+      setTokenCookie(storedToken)
       // Vérifier auprès du serveur que l'utilisateur existe toujours
       try {
         const response = await fetch('http://localhost:8080/api/user/profile', {
@@ -41,7 +44,6 @@ export function useAuth() {
             'Authorization': `Bearer ${storedToken}`
           }
         })
-        
         if (!response.ok) {
           // L'utilisateur n'existe plus ou le token est invalide
           logout()
@@ -59,6 +61,7 @@ export function useAuth() {
       localStorage.removeItem('isAuthenticated')
       localStorage.removeItem('user')
       localStorage.removeItem('token')
+      removeTokenCookie()
     }
   }
 
