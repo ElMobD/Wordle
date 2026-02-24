@@ -39,6 +39,11 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/multiplayer',
+    component: () => import('../views/Multiplayer.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/',
     redirect: () => {
       const { isAuthenticated } = useAuth()
