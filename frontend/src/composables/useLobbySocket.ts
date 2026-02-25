@@ -12,14 +12,17 @@ export function useLobbySocket() {
     socket.value = new WebSocket('ws://localhost/ws/lobby')
 
     socket.value.onopen = () => {
-      isConnected.value = true
-      error.value = null
+        console.log('WebSocket connecté')
+        isConnected.value = true
+        error.value = null
     }
     socket.value.onclose = () => {
-      isConnected.value = false
+        console.log('WebSocket déconnecté')
+        isConnected.value = false
     }
     socket.value.onerror = (e) => {
-      error.value = 'Erreur WebSocket'
+        console.error('WebSocket error:', e)
+        error.value = 'Erreur WebSocket'
     }
     socket.value.onmessage = (event) => {
       try {

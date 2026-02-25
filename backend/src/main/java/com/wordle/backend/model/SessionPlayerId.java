@@ -7,6 +7,12 @@ import java.util.UUID;
 
 @Embeddable
 public class SessionPlayerId implements Serializable {
+        public UUID getSessionId() {
+            return sessionId;
+        }
+        public void setSessionId(UUID sessionId) {
+            this.sessionId = sessionId;
+        }
     private UUID sessionId;
     private Long userId;
 

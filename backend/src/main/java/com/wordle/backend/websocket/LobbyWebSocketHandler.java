@@ -10,9 +10,7 @@ import com.wordle.backend.application.LobbyService;
 import com.wordle.backend.service.JwtValidator;
 import com.wordle.backend.service.UserService;
 import com.wordle.backend.websocket.response.WebSocketResponseFactory;
-
 import io.jsonwebtoken.Claims;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Map;
@@ -59,6 +57,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
             System.out.println("Échec de validation du token pour la session ID: " + session.getId() + " - " + e.getMessage());
             session.close();
         }
+        System.out.println("Connexion WebSocket établie avec session ID: " + session.getId());
     }
 
     @Override
@@ -95,8 +94,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         session.sendMessage(new TextMessage(responseFactory.error(e.getMessage())));
                     }
                 }
-                case CHAT -> {
-                    ChatMessageRequest req = mapper.treeToValue(root, ChatMessageRequest.class);
+                case CHAT -> {                    ChatMessageRequest req = mapper.treeToValue(root, ChatMessageRequest.class);
                     try {
                         lobbyService.saveChat(
                             lobbyService.joinSession(user, req.getSessionCode()),
@@ -108,8 +106,31 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                     } catch (Exception e) {
                         System.out.println("Il y a une erreur dans le broadcasting");
                         session.sendMessage(new TextMessage(responseFactory.error("Chat error: " + e.getMessage())));
+                    }    
+                }
+                case LOBBYINFOS ->{
+                    System.out.println("Demande de lobbyInfo reçue pour session code=" + root.get("sessionCode").asText());
+                    String sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
+                    System.out.println("Session code extrait: " + sessionCode);
+                    if (sessionCode == null) {
+                        session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour LOBBYINFO")));
+                        return;
+                    }
+                    System.out.println("Récupération de la session pour code: " + sessionCode);
+                    try {
+                        Session s = lobbyService.getSessionByCode(sessionCode);
+                        System.out.println("la session récupérée: " + s);
+                        // Récupère les infos du lobby (joueurs, paramètres, etc.)
+                        String lobbyInfo = responseFactory.lobbyInfo(s);
+                        System.out.println("Envoi des infos du lobby pour session code=" + sessionCode + ": " + lobbyInfo);
+                        session.sendMessage(new TextMessage(lobbyInfo));
+                    } catch (Exception e) {
+                        System.out.println("Exception dans LOBBYINFOS: " + e);
+                        e.printStackTrace();
+                        session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la récupération du lobby: " + e.getMessage())));
                     }
                 }
+                
             }
         } catch (Exception e) {
             session.sendMessage(new TextMessage(responseFactory.error("Malformed message or internal error: " + e.getMessage())));

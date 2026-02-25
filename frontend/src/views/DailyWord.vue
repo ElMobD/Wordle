@@ -22,7 +22,7 @@ const error = ref('')
 // Créer ou récupérer une partie DAILY au chargement
 onMounted(async () => {
   try {
-    const response = await authenticatedFetch('http://localhost:8080/api/games', {
+    const response = await authenticatedFetch('http://localhost/api/games', {
       method: 'POST',
       body: JSON.stringify({ gameType: 'DAILY' })
     })

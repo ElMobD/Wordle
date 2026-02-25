@@ -3,12 +3,21 @@ package com.wordle.backend.websocket.response;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.wordle.backend.model.Session;
+import com.wordle.backend.model.SessionPlayer;
 import com.wordle.backend.model.User;
+import com.wordle.backend.repository.SessionPlayerRepository;
+import java.util.ArrayList;
+import java.util.HashMap;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import java.util.List;
+import java.util.Map;
 
 @Component
 public class WebSocketResponseFactory {
-
+    @Autowired
+    private SessionPlayerRepository sessionPlayerRepository;
     private final ObjectMapper mapper;
 
     public WebSocketResponseFactory(ObjectMapper mapper) {
@@ -55,5 +64,31 @@ public class WebSocketResponseFactory {
         node.put("message", message);
         if (sessionCode != null) node.put("sessionCode", sessionCode);
         return node.toString();
+    }
+
+    public String lobbyInfo(Session session) {
+        System.out.println("Génération de lobbyInfo pour session code=" + session.getCode());
+        Map<String, Object> info = new HashMap<>();
+        info.put("type", "lobbyInfo");
+        info.put("sessionCode", session.getCode());
+        info.put("rounds", session.getRounds());
+        info.put("timeLimit", session.getTimeLimit());
+        info.put("wordLength", session.getWordLength());
+        info.put("status", session.getStatus());
+        info.put("host", session.getHost().getName());
+
+        // Récupère les joueurs via le repository
+        List<String> players = new ArrayList<>();
+        List<SessionPlayer> sessionPlayers = sessionPlayerRepository.findBySessionId(session.getId());
+        for (SessionPlayer sp : sessionPlayers) {
+            players.add(sp.getUser().getName());
+        }
+        info.put("players", players);
+
+        try {
+            return mapper.writeValueAsString(info);
+        } catch (Exception e) {
+            return "{\"type\":\"lobbyInfo\",\"error\":\"Erreur de sérialisation\"}";
+        }
     }
 }

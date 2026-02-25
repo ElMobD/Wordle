@@ -44,6 +44,11 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/lobby/:sessionCode',
+    component: () => import('../views/Lobby.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/',
     redirect: () => {
       const { isAuthenticated } = useAuth()

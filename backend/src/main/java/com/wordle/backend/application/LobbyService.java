@@ -8,6 +8,7 @@ import com.wordle.backend.model.SessionChat;
 import com.wordle.backend.service.SessionService;
 import com.wordle.backend.service.SessionPlayerService;
 import com.wordle.backend.service.SessionChatService;
+import com.wordle.backend.repository.SessionRepository;
 import org.springframework.stereotype.Service;
 import java.util.UUID;
 import java.time.LocalDateTime;
@@ -18,13 +19,16 @@ public class LobbyService {
     private final SessionService sessionService;
     private final SessionPlayerService sessionPlayerService;
     private final SessionChatService sessionChatService;
+    private final SessionRepository sessionRepository;
 
     public LobbyService(SessionService sessionService,
                         SessionPlayerService sessionPlayerService,
-                        SessionChatService sessionChatService) {
+                        SessionChatService sessionChatService,
+                        SessionRepository sessionRepository) {
         this.sessionService = sessionService;
         this.sessionPlayerService = sessionPlayerService;
         this.sessionChatService = sessionChatService;
+        this.sessionRepository = sessionRepository;
     }
 
     public Session createSession(User user, int rounds, int timeLimit, int wordLength) {
@@ -45,7 +49,26 @@ public class LobbyService {
 
         return sessionService.createSession(session);
     }
-
+    public Session getSessionByCode(String code) {
+        System.out.println("Recherche de session dans la fonction getSessionByCode pour code: " + code);
+        Session session = null;
+        try {
+            
+            session = sessionRepository.findByCode(code)
+                .orElseThrow(() -> new IllegalArgumentException("Session non trouvée pour le code: " + code));
+            // Force le chargement du host (évite LazyInitializationException)
+            if (session.getHost() != null) {
+                String hostName = session.getHost().getName();
+                System.out.println("Nom de l'hôte chargé: " + hostName);
+            }
+            System.out.println("Session trouvée dans LobbyService: " + session);
+        } catch (Exception e) {
+            System.out.println("Exception dans getSessionByCode: " + e);
+            e.printStackTrace();
+        }
+        
+        return session;
+    }
     public Session joinSession(User user, String code) {
 
         Session session = sessionService.getSessionByCode(code)
@@ -93,4 +116,5 @@ public class LobbyService {
         chat.setSentAt(LocalDateTime.now());
         sessionChatService.saveMessage(chat);
     }
+
 }

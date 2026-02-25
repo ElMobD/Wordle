@@ -5,12 +5,29 @@ import { ref } from 'vue'
 import Header from '../components/Header.vue'
 import { useLobbySocket } from '../composables/useLobbySocket'
 import { watch } from 'vue'
-import { C } from 'vue-router/dist/router-CWoNjPRp.mjs'
+import { authenticatedFetch } from '../utils/api'
+
 
 // ...tes refs existantes...
 const { connect, send, isConnected, lastMessage, error, disconnect } = useLobbySocket()
 const sessionCode = ref<string | null>(null)
 const creationError = ref<string | null>(null)
+
+import { onMounted } from 'vue'
+
+onMounted(async () => {
+  try {
+    const res = await authenticatedFetch('http://localhost/api/session/current')
+    if (res.ok) {
+      const data = await res.json()
+      if (data.sessionCode) {
+        router.push(`/lobby/${data.sessionCode}`)
+      }
+    }
+  } catch (e) {
+    console.error('Erreur lors de la vérification de session:', e)
+  }
+})
 
 const router = useRouter()
 const mode = ref<'menu' | 'create' | 'join'>('menu')
@@ -66,10 +83,14 @@ watch(lastMessage, (msg) => {
     console.log('WebSocket message reçu dans Vue:', msg)
     if (!msg) return
     if (msg.type === 'session_created') {
-        sessionCode.value = msg.sessionCode
-        // Tu peux afficher le code ou naviguer vers la salle d’attente
+      sessionCode.value = msg.sessionCode
+      // Redirige vers la vue lobby
+      router.push(`/lobby/${msg.sessionCode}`)
     } else if (msg.type === 'error') {
-        creationError.value = msg.message
+      creationError.value = msg.message
+      if (msg.sessionCode) {
+        router.push(`/lobby/${msg.sessionCode}`)
+      }
     }
 })
 
