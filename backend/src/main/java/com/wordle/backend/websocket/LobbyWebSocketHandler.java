@@ -10,12 +10,16 @@ import com.wordle.backend.application.LobbyService;
 import com.wordle.backend.service.JwtValidator;
 import com.wordle.backend.service.UserService;
 import com.wordle.backend.websocket.response.WebSocketResponseFactory;
-import io.jsonwebtoken.Claims;
+
+import net.minidev.json.JSONObject;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
+
 import com.wordle.backend.model.User;
 import com.wordle.backend.model.Session;
 import com.wordle.backend.websocket.dto.MessageType;
@@ -31,6 +35,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
     private final UserService userService;
     private final WebSocketResponseFactory responseFactory;
     private final ObjectMapper mapper;
+    private static final Logger logger = Logger.getLogger(LobbyWebSocketHandler.class.getName());
 
     private final Map<String, Set<WebSocketSession>> lobbies = new ConcurrentHashMap<>();
 
@@ -50,9 +55,12 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         try {
             System.out.println("Tentative de connexion WebSocket avec session ID: " + session.getId());
-            
+ 
             User user = validateWebSocketUser(session);
             session.getAttributes().put("user", user);
+            JSONObject response = new JSONObject();
+            response.put("userId", user.getId());
+            session.sendMessage(new TextMessage(response.toString()));
         } catch (Exception e) {
             System.out.println("Échec de validation du token pour la session ID: " + session.getId() + " - " + e.getMessage());
             session.close();
@@ -154,6 +162,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
     private User validateWebSocketUser(WebSocketSession session) throws Exception {
     String token = null;
     String authHeader = session.getHandshakeHeaders().getFirst("Authorization");
+    logger.info("[WebSocket] Headers: " + session.getHandshakeHeaders());
     if (authHeader != null && authHeader.startsWith("Bearer ")) {
         System.out.println("[WebSocket] Headers: " + session.getHandshakeHeaders());
         token = authHeader.substring(7);

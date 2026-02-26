@@ -76,12 +76,21 @@ public class WebSocketResponseFactory {
         info.put("wordLength", session.getWordLength());
         info.put("status", session.getStatus());
         info.put("host", session.getHost().getName());
+        info.put("hostId", session.getHost().getId());
 
         // Récupère les joueurs via le repository
-        List<String> players = new ArrayList<>();
+        List<Map<String, Object>> players = new ArrayList<>();
         List<SessionPlayer> sessionPlayers = sessionPlayerRepository.findBySessionId(session.getId());
         for (SessionPlayer sp : sessionPlayers) {
-            players.add(sp.getUser().getName());
+            User user = sp.getUser();
+            Map<String, Object> playerData = new HashMap<>();
+            playerData.put("id", user.getId());
+            playerData.put("name", user.getName());
+            playerData.put("picture", user.getPicture());
+            playerData.put("isHost", sp.isHost());
+            playerData.put("joinedAt", sp.getJoinedAt());
+            // Ajoute d'autres champs si besoin (email, etc.)
+            players.add(playerData);
         }
         info.put("players", players);
 

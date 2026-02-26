@@ -24,6 +24,8 @@ export function useAuth() {
     localStorage.removeItem('user')
     localStorage.removeItem('token')
     removeTokenCookie()
+    // Supprime le cookie userId
+    document.cookie = 'userId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
   }
 
   const checkAuth = async () => {

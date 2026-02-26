@@ -3,6 +3,7 @@ import { ref, onUnmounted } from 'vue'
 export function useLobbySocket() {
   const socket = ref<WebSocket | null>(null)
   const isConnected = ref(false)
+  const firstMessageReceived = ref<any>(null)
   const lastMessage = ref<any>(null)
   const error = ref<string | null>(null)
 
@@ -10,7 +11,7 @@ export function useLobbySocket() {
   function connect() {
     // Utilise le chemin du backend (adapter si besoin)
     socket.value = new WebSocket('ws://localhost/ws/lobby')
-
+    
     socket.value.onopen = () => {
         console.log('WebSocket connecté')
         isConnected.value = true
@@ -26,8 +27,16 @@ export function useLobbySocket() {
     }
     socket.value.onmessage = (event) => {
       try {
-        lastMessage.value = JSON.parse(event.data)
-      } catch {
+        const parsed = JSON.parse(event.data)
+        if (!firstMessageReceived.value) {
+          firstMessageReceived.value = parsed
+        }
+        lastMessage.value = parsed
+        if(parsed.userId) {
+          console.log('User ID reçu:', parsed.userId)
+          document.cookie = `userId=${parsed.userId}; path=/` // Stocke le userId dans les cookies
+        }
+      } catch (e) {
         lastMessage.value = event.data
       }
     }
