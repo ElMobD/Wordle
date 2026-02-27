@@ -33,8 +33,8 @@ export function useLobbySocket() {
         }
         lastMessage.value = parsed
         if(parsed.userId) {
-          console.log('User ID reçu:', parsed.userId)
-          document.cookie = `userId=${parsed.userId}; path=/` // Stocke le userId dans les cookies
+          //console.log('User ID reçu:', parsed.userId)
+          //document.cookie = `userId=${parsed.userId}; path=/` // Stocke le userId dans les cookies
         }
       } catch (e) {
         lastMessage.value = event.data

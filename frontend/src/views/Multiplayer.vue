@@ -9,7 +9,7 @@ import { authenticatedFetch } from '../utils/api'
 
 
 // ...tes refs existantes...
-const { connect, send, isConnected, lastMessage, error, disconnect } = useLobbySocket()
+const { connect, send, isConnected, lastMessage} = useLobbySocket()
 const sessionCode = ref<string | null>(null)
 const creationError = ref<string | null>(null)
 

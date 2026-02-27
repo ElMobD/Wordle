@@ -8,7 +8,7 @@ import { watch } from 'vue'
 const router = useRouter()
 const route = useRoute()
 const sessionCode = route.params.sessionCode as string
-const { connect, send, isConnected, lastMessage, error, disconnect } = useLobbySocket()
+const { connect, send, isConnected, lastMessage} = useLobbySocket()
 const lobbyInfo = ref<any>(null)
 const players = ref<any[]>([])
 const nbrPlayers = ref(0)

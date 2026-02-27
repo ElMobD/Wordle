@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.wordle.backend.service.UserService;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,6 +19,8 @@ public class UserController {
 
     @Autowired
     private JwtValidator jwtValidator;
+    @Autowired
+    private UserService userService;
 
     /**
      * Endpoint sécurisé pour récupérer le profil du user authentifié
@@ -46,5 +49,35 @@ public class UserController {
         profile.put("authenticated", true);
 
         return ResponseEntity.ok(profile);
+    }
+
+    @GetMapping("/check")
+    public ResponseEntity<Map<String, Object>> checkAuthentication(Authentication authentication) {
+        Map<String, Object> response = new HashMap<>();
+        if (authentication != null) {
+            response.put("authenticated", true);
+            response.put("user", authentication.getPrincipal());
+            // Extraire l'email ou le googleId du token
+            Object details = authentication.getDetails();
+            if (details instanceof String token) {
+                try {
+                    Claims claims = jwtValidator.validateToken(token);
+                    String email = claims.get("email", String.class);
+                    // Chercher l'utilisateur en base
+                    java.util.Optional<com.wordle.backend.model.User> userOpt = null;
+                    if (email != null) {
+                        userOpt = userService.findByEmail(email);
+                    }
+                    if (userOpt != null && userOpt.isPresent()) {
+                        response.put("userId", userOpt.get().getId());
+                    }
+                } catch (Exception e) {
+                    // ignore, id non disponible
+                }
+            }
+        } else {
+            response.put("authenticated", false);
+        }
+        return ResponseEntity.ok(response);
     }
 }

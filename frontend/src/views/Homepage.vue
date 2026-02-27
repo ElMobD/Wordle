@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { onMounted } from 'vue'
 import { ref } from 'vue'
 import Header from '../components/Header.vue'
 import Modal from '../components/Modal.vue'
+import { useAuth } from '../composables/useAuth'
 
+
+const { checkAuth } = useAuth()
 const router = useRouter()
 const isHelpModalOpen = ref(false)
 
@@ -30,6 +34,9 @@ const goToContact = () => {
 const goToProfile = () => {
   router.push('/settings?tab=profil')
 }
+onMounted(async () => {
+    checkAuth();
+})
 </script>
 
 <template>

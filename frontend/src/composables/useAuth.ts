@@ -41,7 +41,7 @@ export function useAuth() {
       setTokenCookie(storedToken)
       // Vérifier auprès du serveur que l'utilisateur existe toujours
       try {
-        const response = await fetch('http://localhost:8080/api/user/profile', {
+        const response = await fetch('http://localhost:8080/api/user/check', {
           headers: {
             'Authorization': `Bearer ${storedToken}`
           }
@@ -49,6 +49,12 @@ export function useAuth() {
         if (!response.ok) {
           // L'utilisateur n'existe plus ou le token est invalide
           logout()
+        }
+        //réponse recu affiché en console pour debug
+        const data = await response.json();
+        //mettre l'id de l'utilisateur dans les cookies pour le websocket
+        if(data.userId) {
+          document.cookie = `userId=${data.userId}; path=/` // Stocke le userId dans les cookies
         }
         // Si ok, l'utilisateur est toujours valide
       } catch (error) {
