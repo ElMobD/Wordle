@@ -6,9 +6,10 @@ export function useLobbySocket() {
   const firstMessageReceived = ref<any>(null)
   const lastMessage = ref<any>(null)
   const error = ref<string | null>(null)
+  var dataToSend: any = null
 
   // Ouvre la connexion WebSocket
-  function connect() {
+  function connect(code : string) {
     // Utilise le chemin du backend (adapter si besoin)
     socket.value = new WebSocket('ws://localhost/ws/lobby')
     
@@ -16,6 +17,11 @@ export function useLobbySocket() {
         console.log('WebSocket connecté')
         isConnected.value = true
         error.value = null
+        if(code){
+          dataToSend = { type: 'JOIN', sessionCode: code }
+          console.log('Envoi du message JOIN:', dataToSend)
+          send(dataToSend)
+        }
     }
     socket.value.onclose = () => {
         console.log('WebSocket déconnecté')

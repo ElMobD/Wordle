@@ -62,7 +62,6 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
             response.put("userId", user.getId());
             session.sendMessage(new TextMessage(response.toString()));
         } catch (Exception e) {
-            System.out.println("Échec de validation du token pour la session ID: " + session.getId() + " - " + e.getMessage());
             session.close();
         }
         System.out.println("Connexion WebSocket établie avec session ID: " + session.getId());
@@ -86,6 +85,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         String code = null;
                         if (msg != null && msg.contains(";code=")) {
                             String[] parts = msg.split(";code=");
+                            
                             msg = parts[0];
                             code = parts.length > 1 ? parts[1] : null;
                         }
@@ -102,24 +102,28 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         session.sendMessage(new TextMessage(responseFactory.error(e.getMessage())));
                     }
                 }
-                case CHAT -> {                    ChatMessageRequest req = mapper.treeToValue(root, ChatMessageRequest.class);
+                case CHAT -> {                    
+                    ChatMessageRequest req = mapper.treeToValue(root, ChatMessageRequest.class);
+                    logger.info("Received chat message from user " + user.getName() + " in session " + req.getSessionCode() + ": " + req.getMessage());
                     try {
+                        logger.info("Saving chat message for session " + req.getSessionCode() + " and user " + user.getName());
                         lobbyService.saveChat(
                             lobbyService.joinSession(user, req.getSessionCode()),
                             user,
                             req.getMessage()
                         );
-                        System.out.println("Broadcasting chat message from user " + user.getName() + " in session " + req.getSessionCode() + ": " + req.getMessage());
+                        logger.info("Broadcasting chat message to session " + req.getSessionCode() + ": " + req.getMessage());
                         broadcast(req.getSessionCode(), responseFactory.chat(user, req.getMessage()));
+                        logger.info("Chat message broadcasted successfully for session " + req.getSessionCode());
                     } catch (Exception e) {
-                        System.out.println("Il y a une erreur dans le broadcasting");
+                        logger.severe("Error handling chat message for session " + req.getSessionCode() + ": " + e.getMessage());
                         session.sendMessage(new TextMessage(responseFactory.error("Chat error: " + e.getMessage())));
                     }    
                 }
                 case LOBBYINFOS ->{
-                    System.out.println("Demande de lobbyInfo reçue pour session code=" + root.get("sessionCode").asText());
+                    //System.out.println("Demande de lobbyInfo reçue pour session code=" + root.get("sessionCode").asText());
                     String sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
-                    System.out.println("Session code extrait: " + sessionCode);
+                    //System.out.println("Session code extrait: " + sessionCode);
                     if (sessionCode == null) {
                         session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour LOBBYINFO")));
                         return;
@@ -162,9 +166,9 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
     private User validateWebSocketUser(WebSocketSession session) throws Exception {
     String token = null;
     String authHeader = session.getHandshakeHeaders().getFirst("Authorization");
-    logger.info("[WebSocket] Headers: " + session.getHandshakeHeaders());
+    //logger.info("[WebSocket] Headers: " + session.getHandshakeHeaders());
     if (authHeader != null && authHeader.startsWith("Bearer ")) {
-        System.out.println("[WebSocket] Headers: " + session.getHandshakeHeaders());
+        //System.out.println("[WebSocket] Headers: " + session.getHandshakeHeaders());
         token = authHeader.substring(7);
     } else {
         String cookieHeader = session.getHandshakeHeaders().getFirst("cookie");

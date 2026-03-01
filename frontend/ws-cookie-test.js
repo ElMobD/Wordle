@@ -4,7 +4,7 @@
 import WebSocket from 'ws';
 
 
-const token = 'eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0cmFjZXJ0cmFvcmVAZ21haWwuY29tIiwibmFtZSI6IkFsYXNzYW5lIFRyYW9yZSIsImVtYWlsIjoidHJhY2VydHJhb3JlQGdtYWlsLmNvbSIsInBpY3R1cmUiOiJodHRwczovL2xoMy5nb29nbGV1c2VyY29udGVudC5jb20vYS9BQ2c4b2NJVk9jcE10SHNBSjhKNGtHT1RUMXluYXhwLUptaVpLb3d5QWd6TmpiTDNtVXc3dVZNQj1zOTYtYyIsImlhdCI6MTc3MjEzODI0MCwiZXhwIjoxNzcyMjI0NjQwfQ.7sd6WIk1QOBUsjGmilVsoshvZUkQ5Fy9StHkme-en-t2PSr2-7xTiw_UYOVSpVFI09DmDpACqFntHAlBsi7feQ'; // Remplace par ton vrai JWT
+const token = 'eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJsdWZmeXRlc3RkZXZAZ21haWwuY29tIiwibmFtZSI6Ikx1ZmZ5IE1vbmtleSBEIiwiZW1haWwiOiJsdWZmeXRlc3RkZXZAZ21haWwuY29tIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FDZzhvY0pYTzdVajhJNl9NUlM4YmUyMktEbDFOUTBNemtzY2dRRlFkeXU0ZEh0ZDlKRVA9czk2LWMiLCJpYXQiOjE3NzIzOTkwMzksImV4cCI6MTc3MjQ4NTQzOX0.6zX_WYuMMKKt7LFfLZnaZzRgyozPbyazLoQ55qqdi2mCdkuUl3DOKs4Zehc0ke6aQdvL8bpM7X9bq7XxERx6Vw'; // Remplace par ton vrai JWT
 const cookieHeader = `token=${token}`;
 console.log('Header Cookie envoyé :', cookieHeader);
 const ws = new WebSocket('ws://localhost/ws/lobby', {
@@ -22,8 +22,7 @@ ws.on('open', () => {
 // Exemple d'envoi d'un message dans la session (adapte le type/structure si besoin)
 setTimeout(() => {
   ws.send(JSON.stringify(
-    { type: 'LOBBYINFOS', 
-      sessionCode : "2829F530" }));
+    { type: 'CHAT', sessionCode: "2829F530", message: "Bonjour depuis le test WebSocket!" }));
   console.log('Envoie de message après 1 seconde');
 }, 1000);
 });
