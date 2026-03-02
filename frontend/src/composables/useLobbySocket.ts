@@ -9,7 +9,7 @@ export function useLobbySocket() {
   var dataToSend: any = null
 
   // Ouvre la connexion WebSocket
-  function connect(code : string) {
+  function connect(code ?: string) {
     // Utilise le chemin du backend (adapter si besoin)
     socket.value = new WebSocket('ws://localhost/ws/lobby')
     
