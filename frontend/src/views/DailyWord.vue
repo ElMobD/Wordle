@@ -9,6 +9,7 @@ import WordleKeyboard from '../components/WordleKeyboard.vue'
 
 const router = useRouter()
 const isHelpModalOpen = ref(false)
+const activeTab = ref<'settings' | 'user'>('settings')
 const isResultModalOpen = ref(false)
 const guesses = ref<any[]>([])
 const currentGuess = ref('')
@@ -85,6 +86,17 @@ const submitWord = async (word: string) => {
 const goHome = () => {
   router.push('/homepage')
 }
+const goToContact = () => {
+  router.push('/contact')
+}
+
+const goToSettings = () => {
+  router.push('/settings')
+}
+
+const goToProfile = () => {
+  router.push('/settings?tab=profil')
+}
 
 const handleKeyPress = (key: string) => {
   if (key === 'ENTER') {
@@ -138,7 +150,7 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
 
 <template>
   <!-- Couche d'atténuation du gradient -->
-  <div class="relative flex flex-col min-h-screen w-full bg-[#151e2e]">
+  <div class="relative flex flex-col min-h-screen w-full">
     <div class="fixed inset-0 bg-white/5 pointer-events-none z-0"></div>
     <Header
       title="Wordle du Jour"

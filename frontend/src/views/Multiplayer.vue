@@ -135,289 +135,65 @@ const joinSession = () => {
 </script>
 
 <template>
-  <div class="multiplayer-wrapper">
-    <div class="gradient-overlay"></div>
-
-    <Header 
-      title="MULTIJOUEUR"
-      @home="goHome"
-      @settings="goToSettings"
-      @help="showHelp"
-      @contact="goToContact"
-      @profile="goToProfile"
-    />
-
-    <main class="main-content">
-      <!-- Menu principal -->
-      <div v-if="mode === 'menu'" class="menu-container">
-        <button @click="showCreateForm" class="action-button primary">
-          Créer une partie
-        </button>
-        <button @click="showJoinForm" class="action-button secondary">
-          Rejoindre une partie
-        </button>
-      </div>
-
-      <!-- Formulaire créer -->
-      <div v-else-if="mode === 'create'" class="form-container">
-        <h2 class="form-title">Créer une partie</h2>
-        <p class="form-description">Configuration de la session multijoueur</p>
-        
-        <div class="form-content form-create-grid">
-          <div class="form-group">
-            <label for="rounds" class="form-label">Nombre de manches</label>
-            <input id="rounds" type="number" v-model.number="rounds" min="1" max="20" class="form-input" />
+      <div class="relative flex flex-col min-h-screen w-full">
+        <div class="fixed inset-0 bg-white/5 pointer-events-none z-0"></div>
+        <Header 
+          title="MULTIJOUEUR"
+          @home="goHome"
+          @settings="goToSettings"
+          @help="showHelp"
+          @contact="goToContact"
+          @profile="goToProfile"
+        />
+        <main class="relative flex-1 flex items-center justify-center p-8">
+          <div class="flex flex-col gap-8 items-center w-full max-w-md">
+            <!-- Menu principal -->
+            <div v-if="mode === 'menu'" class="flex flex-col gap-6 w-full">
+              <button @click="showCreateForm" class="rounded-xl px-8 py-5 text-xl font-bold bg-white/10 text-white border border-white/20 hover:bg-white/20 transition">Créer une partie</button>
+              <button @click="showJoinForm" class="rounded-xl px-8 py-5 text-xl font-bold bg-white/5 text-white/80 border border-white/20 hover:bg-white/10 transition">Rejoindre une partie</button>
+            </div>
+            <!-- Formulaire créer -->
+            <div v-else-if="mode === 'create'" class="w-full bg-white/5 rounded-xl p-6 flex flex-col gap-4 border border-white/10">
+              <h2 class="text-2xl font-bold text-white mb-2">Créer une partie</h2>
+              <p class="text-white/80 mb-4">Configuration de la session multijoueur</p>
+              <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-1">
+                  <label for="rounds" class="text-white font-medium">Nombre de manches</label>
+                  <input id="rounds" type="number" v-model.number="rounds" min="1" max="20" class="rounded-lg px-4 py-2 bg-white/10 border border-white/20 text-white focus:border-white outline-none" />
+                </div>
+                <div class="flex flex-col gap-1">
+                  <label for="timeLimit" class="text-white font-medium">Temps par manche (secondes)</label>
+                  <input id="timeLimit" type="number" v-model.number="timeLimit" min="10" max="300" class="rounded-lg px-4 py-2 bg-white/10 border border-white/20 text-white focus:border-white outline-none" />
+                </div>
+                <div class="flex flex-col gap-1">
+                  <label for="wordLength" class="text-white font-medium">Longueur du mot</label>
+                  <input id="wordLength" type="number" v-model.number="wordLength" min="4" max="8" class="rounded-lg px-4 py-2 bg-white/10 border border-white/20 text-white focus:border-white outline-none" />
+                </div>
+              </div>
+              <div class="flex flex-row gap-4 justify-end mt-4">
+                <button @click="backToMenu" class="rounded-lg px-6 py-2 bg-white/10 text-white/80 border border-white/20 hover:bg-white/20 transition">Retour</button>
+                <button @click="createSession" class="rounded-lg px-6 py-2 bg-indigo-600 text-white font-semibold border border-indigo-600 hover:bg-indigo-700 transition" :disabled="!isFormValid">Créer</button>
+              </div>
+            </div>
+            <!-- Formulaire rejoindre -->
+            <div v-else-if="mode === 'join'" class="w-full bg-white/5 rounded-xl p-6 flex flex-col gap-4 border border-white/10">
+              <h2 class="text-2xl font-bold text-white mb-2">Rejoindre une partie</h2>
+              <p class="text-white/80 mb-4">Entrez le code de la session</p>
+              <input 
+                v-model="joinCode"
+                type="text"
+                placeholder="Code de la partie (ex: ABC123)"
+                class="rounded-lg px-4 py-2 bg-white/10 border border-white/20 text-white focus:border-white outline-none text-center text-lg tracking-widest"
+                maxlength="10"
+                @keyup.enter="joinSession"
+              />
+              <div class="flex flex-row gap-4 justify-end mt-4">
+                <button @click="backToMenu" class="rounded-lg px-6 py-2 bg-white/10 text-white/80 border border-white/20 hover:bg-white/20 transition">Retour</button>
+                <button @click="joinSession" class="rounded-lg px-6 py-2 bg-indigo-600 text-white font-semibold border border-indigo-600 hover:bg-indigo-700 transition" :disabled="!joinCode.trim()">Rejoindre</button>
+              </div>
+            </div>
           </div>
-          <div class="form-group">
-            <label for="timeLimit" class="form-label">Temps par manche (secondes)</label>
-            <input id="timeLimit" type="number" v-model.number="timeLimit" min="10" max="300" class="form-input" />
-          </div>
-          <div class="form-group">
-            <label for="wordLength" class="form-label">Longueur du mot</label>
-            <input id="wordLength" type="number" v-model.number="wordLength" min="4" max="8" class="form-input" />
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button @click="backToMenu" class="btn-secondary">Retour</button>
-          <button @click="createSession" class="btn-primary" :disabled="!isFormValid">Créer</button>
-        </div>
-
-      
+        </main>
       </div>
-
-      <!-- Formulaire rejoindre -->
-      <div v-else-if="mode === 'join'" class="form-container">
-        <h2 class="form-title">Rejoindre une partie</h2>
-        <p class="form-description">Entrez le code de la session</p>
-        
-        <div class="form-content">
-          <input 
-            v-model="joinCode"
-            type="text"
-            placeholder="Code de la partie (ex: ABC123)"
-            class="code-input"
-            maxlength="10"
-            @keyup.enter="joinSession"
-          />
-        </div>
-
-        <div class="form-actions">
-          <button @click="backToMenu" class="btn-secondary">Retour</button>
-          <button @click="joinSession" class="btn-primary" :disabled="!joinCode.trim()">Rejoindre</button>
-        </div>
-      </div>
-    </main>
-  </div>
 </template>
 
-<style scoped>
-.multiplayer-wrapper {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  width: 100%;
-}
-
-.gradient-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.03);
-  pointer-events: none;
-}
-
-.main-content {
-  position: relative;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-}
-
-/* Menu principal */
-.menu-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  align-items: center;
-}
-
-.action-button {
-  padding: 2.5rem 4rem;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(60px);
-  -webkit-backdrop-filter: blur(60px);
-  border: 0.5px solid rgba(255, 255, 255, 0.25);
-  border-radius: 28px;
-  color: white;
-  font-size: 2.5rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 
-    0 20px 60px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  min-width: 400px;
-}
-
-.action-button.secondary {
-  padding: 2rem 3.5rem;
-  font-size: 2rem;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.action-button:hover {
-  background: rgba(255, 255, 255, 0.18);
-  transform: scale(1.02);
-  box-shadow: 
-    0 24px 70px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
-}
-
-.action-button:active {
-  transform: scale(0.98);
-}
-
-/* Formulaires */
-.form-container {
-  max-width: 600px;
-  width: 100%;
-  padding: 3rem;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(60px);
-  -webkit-backdrop-filter: blur(60px);
-  border: 0.5px solid rgba(255, 255, 255, 0.2);
-  border-radius: 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-}
-
-.form-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: white;
-  margin-bottom: 0.5rem;
-  text-align: center;
-}
-
-.form-description {
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.7);
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.form-content {
-  margin-bottom: 2rem;
-}
-
-.placeholder-text {
-  text-align: center;
-  color: rgba(255, 255, 255, 0.5);
-  font-style: italic;
-}
-
-.code-input {
-  width: 100%;
-  padding: 1.25rem;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 16px;
-  color: white;
-  font-size: 1.5rem;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  transition: all 0.2s ease;
-}
-
-.code-input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
-  text-transform: none;
-  letter-spacing: normal;
-}
-
-.code-input:focus {
-  outline: none;
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.4);
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-}
-
-.btn-primary,
-.btn-secondary {
-  padding: 1rem 2.5rem;
-  border-radius: 16px;
-  font-size: 1.125rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 0.5px solid rgba(255, 255, 255, 0.2);
-}
-
-.btn-primary {
-  background: rgba(255, 255, 255, 0.18);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.25);
-  transform: scale(1.02);
-}
-
-.btn-primary:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.btn-primary:active:not(:disabled),
-.btn-secondary:active {
-  transform: scale(0.98);
-}
-
-/* Formulaire création */
-.form-create-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-.form-label {
-    color: #fff;
-    font-size: 1.1rem;
-    font-weight: 500;
-}
-.form-input {
-    padding: 0.8rem 1.2rem;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.18);
-    background: rgba(255,255,255,0.08);
-    color: #fff;
-    font-size: 1.1rem;
-    outline: none;
-    transition: border-color 0.2s;
-}
-.form-input:focus {
-    border-color: #fff;
-    background: rgba(255,255,255,0.13);
-}
-</style>
