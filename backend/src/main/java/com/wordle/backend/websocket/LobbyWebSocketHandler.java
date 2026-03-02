@@ -97,7 +97,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                     try {
                         Session s = lobbyService.joinSession(user, req.getSessionCode());
                         addToLobby(s.getCode(), session);
-                        broadcast(s.getCode(), responseFactory.playerJoined(user));
+                        broadcast(s.getCode(), responseFactory.playerJoined(user, s.getCode()));
                     } catch (IllegalArgumentException e) {
                         session.sendMessage(new TextMessage(responseFactory.error(e.getMessage())));
                     }
@@ -140,6 +140,21 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         System.out.println("Exception dans LOBBYINFOS: " + e);
                         e.printStackTrace();
                         session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la récupération du lobby: " + e.getMessage())));
+                    }
+                }
+                case LEAVE_LOBBY -> {
+                    String sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
+                    if (sessionCode == null) {
+                        session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour LEAVE_LOBBY")));
+                        return;
+                    }
+                    try {
+                        lobbyService.leaveSession(user, sessionCode);
+                        broadcast(sessionCode, responseFactory.playerLeft(user, sessionCode));
+                        // Optionnel : retirer la session du lobby
+                        lobbies.getOrDefault(sessionCode, Set.of()).remove(session);
+                    } catch (Exception e) {
+                        session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la sortie du lobby: " + e.getMessage())));
                     }
                 }
                 

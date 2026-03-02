@@ -4,5 +4,7 @@ public enum MessageType {
     CREATE,
     JOIN,
     CHAT,
-    LOBBYINFOS
+    LOBBYINFOS,
+    LEAVE_LOBBY,
+    START_GAME
 }

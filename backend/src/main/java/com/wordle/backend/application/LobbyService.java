@@ -116,5 +116,11 @@ public class LobbyService {
         chat.setSentAt(LocalDateTime.now());
         sessionChatService.saveMessage(chat);
     }
+    public void leaveSession(User user, String sessionCode) {
+        Session session = sessionService.getSessionByCode(sessionCode)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found"));
 
+        SessionPlayerId spId = new SessionPlayerId(session.getId(), user.getId());
+        sessionPlayerService.removePlayer(spId);
+    }
 }

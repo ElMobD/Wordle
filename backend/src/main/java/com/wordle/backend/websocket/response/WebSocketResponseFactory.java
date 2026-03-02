@@ -34,11 +34,12 @@ public class WebSocketResponseFactory {
         return node.toString();
     }
 
-    public String playerJoined(User user) {
+    public String playerJoined(User user, String sessionCode) {
         ObjectNode node = mapper.createObjectNode();
         node.put("type", "player_joined");
         node.put("userId", user.getId());
         node.put("userName", user.getName());
+        node.put("LobbyCode", sessionCode);
         return node.toString();
     }
 
@@ -99,5 +100,13 @@ public class WebSocketResponseFactory {
         } catch (Exception e) {
             return "{\"type\":\"lobbyInfo\",\"error\":\"Erreur de sérialisation\"}";
         }
+    }
+    public String playerLeft(User user, String sessionCode) {
+        ObjectNode node = mapper.createObjectNode();
+        node.put("type", "player_left");
+        node.put("userId", user.getId());
+        node.put("userName", user.getName());
+        node.put("sessionCode", sessionCode);
+        return node.toString();
     }
 }

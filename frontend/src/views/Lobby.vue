@@ -63,6 +63,11 @@ watch(lastMessage, (msg) => {
       nbrPlayers.value = players.value.length
 
       isHost.value = String(lobbyInfo.value.hostId) === String(userIdCookie.value)
+    }else if (msg && msg.type === 'player_left') {
+      // Retirer le joueur de la liste
+      players.value = players.value.filter(p => String(p.id) !== String(msg.userId))
+      nbrPlayers.value = players.value.length
+      router.push('/multiplayer') // Rediriger vers l'accueil si un joueur quitte le lobby
     }
 })
 // Copie du code de session
@@ -73,6 +78,9 @@ function copySessionCode() {
       copied.value = true
       setTimeout(() => copied.value = false, 1500)
     })
+}
+const quitLobby = () => {
+  send({ type: 'LEAVE_LOBBY', sessionCode })
 }
 </script>
 
@@ -143,6 +151,11 @@ function copySessionCode() {
             <span class="text-xl">🚀</span> LANCER LA PARTIE
           </button>
           <p v-else class="text-teal-200 italic animate-pulse mt-2">En attente du lancement par l'hôte...</p>
+          <div class="flex justify-center mt-8">
+          <button @click="quitLobby" class="bg-red-600 hover:bg-red-700 text-white font-bold rounded-full px-8 py-3 shadow-lg transition-all">
+            Quitter le lobby
+          </button>
+      </div>
         </div>
       </div>
     </main>

@@ -91,6 +91,8 @@ watch(lastMessage, (msg) => {
       if (msg.sessionCode) {
         router.push(`/lobby/${msg.sessionCode}`)
       }
+    }else if (msg.type === 'player_joined') {
+      router.push(`/lobby/${msg.LobbyCode}`)
     }
 })
 
@@ -128,8 +130,23 @@ const createSession = () => {
 
 const joinSession = () => {
   if (joinCode.value.trim()) {
-    // TODO: implémenter rejoindre session
-    console.log('Rejoindre session:', joinCode.value)
+    if (!isConnected.value) connect()
+    const sendJoin = () => {
+      send({
+        type: 'JOIN',
+        sessionCode: joinCode.value.trim().toUpperCase()
+      })
+    }
+    if (isConnected.value) {
+      sendJoin()
+    } else {
+      const stop = watch(isConnected, (ok) => {
+        if (ok) {
+          sendJoin()
+          stop()
+        }
+      })
+    }
   }
 }
 </script>
