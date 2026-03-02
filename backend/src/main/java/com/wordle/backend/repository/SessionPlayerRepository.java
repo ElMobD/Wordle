@@ -11,4 +11,5 @@ public interface SessionPlayerRepository extends JpaRepository<SessionPlayer, Se
     @EntityGraph(attributePaths = {"user"})
     List<SessionPlayer> findBySessionId(java.util.UUID sessionId);
     List<SessionPlayer> findByUserId(Long userId);
+    
 }

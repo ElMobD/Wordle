@@ -70,39 +70,45 @@ public class LobbyService {
         return session;
     }
     public Session joinSession(User user, String code) {
-
         Session session = sessionService.getSessionByCode(code)
                 .orElseThrow(() -> new IllegalArgumentException("Session not found"));
 
-        boolean already = sessionPlayerService.getSessionsByUser(user.getId())
-                .stream()
-                .anyMatch(sp -> sp.getSession().getId().equals(session.getId()));
+        // Vérifier que la session n'est pas terminée ou annulée
+        if ("FINISHED".equals(session.getStatus()) || "CANCELLED".equals(session.getStatus())) {
+            throw new IllegalArgumentException("Impossible de rejoindre une session terminée ou annulée");
+        }
 
-        SessionPlayer sp = null;
-        if (!already) {
-            sp = new SessionPlayer();
+        // Vérifier si l'utilisateur est déjà dans une session active (autre que celle-ci)
+        java.util.List<SessionPlayer> userSessions = sessionPlayerService.getSessionsByUser(user.getId());
+        for (SessionPlayer sp : userSessions) {
+            Session s = sp.getSession();
+            if (s != null && !s.getId().equals(session.getId()) && !"FINISHED".equals(s.getStatus()) && !"CANCELLED".equals(s.getStatus())) {
+                throw new IllegalStateException("User already in another active session;code=" + s.getCode());
+            }
+        }
+
+        // Vérifier si l'utilisateur est déjà dans cette session
+        SessionPlayer existing = userSessions.stream()
+                .filter(sp -> sp.getSession() != null && sp.getSession().getId().equals(session.getId()))
+                .findFirst()
+                .orElse(null);
+
+        boolean isHost = session.getHost().getId().equals(user.getId());
+
+        if (existing == null) {
+            // Ajouter le joueur à la session
+            SessionPlayer sp = new SessionPlayer();
             sp.setId(new SessionPlayerId(session.getId(), user.getId()));
             sp.setSession(session);
             sp.setUser(user);
-            sp.setHost(session.getHost().getId().equals(user.getId()));
+            sp.setHost(isHost);
             sessionPlayerService.addPlayer(sp);
         } else {
-            // Récupère le joueur existant si besoin
-            sp = sessionPlayerService.getSessionsByUser(user.getId())
-                .stream()
-                .filter(p -> p.getSession().getId().equals(session.getId()))
-                .findFirst()
-                .orElse(null);
-            // Tu peux alors mettre à jour sp ici
-            if (sp != null) {
-                // Met à jour le statut d'hôte si besoin
-                boolean isHost = session.getHost().getId().equals(user.getId());
-                if (sp.isHost() != isHost) {
-                    sp.setHost(isHost);
-                    sessionPlayerService.addPlayer(sp); 
-                }
+            // Mettre à jour le flag host si besoin
+            if (existing.isHost() != isHost) {
+                existing.setHost(isHost);
+                sessionPlayerService.addPlayer(existing);
             }
-
         }
 
         return session;

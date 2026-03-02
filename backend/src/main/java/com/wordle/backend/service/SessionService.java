@@ -54,13 +54,40 @@ public class SessionService {
         return sessionRepository.existsByHostIdAndStatusNotIn(hostId, java.util.Arrays.asList("FINISHED", "CANCELLED"));
     }
 
-    public Optional<Session> getActiveSessionForUser(Long hostId) {
-        return sessionRepository.findFirstByHostIdAndStatusNotIn(hostId, java.util.Arrays.asList("FINISHED", "CANCELLED"));
+    public Optional<Session> getActiveSessionForUser(Long userId) {
+        if (userId == null) return Optional.empty();
+        java.util.List<com.wordle.backend.model.SessionPlayer> players = sessionPlayerRepository.findByUserId(userId);
+        for (com.wordle.backend.model.SessionPlayer sp : players) {
+            java.util.UUID sessionId = sp.getId().getSessionId();
+            com.wordle.backend.model.Session session = sessionRepository.findById(sessionId).orElse(null);
+            if (session != null && !"FINISHED".equals(session.getStatus()) && !"CANCELLED".equals(session.getStatus())) {
+                return Optional.of(session);
+            }
+        }
+        return Optional.empty();
     }
 
     public String getSessionCodeForUser(com.wordle.backend.model.User user) {
         if (user == null || user.getId() == null) return null;
         Optional<Session> sessionOpt = getActiveSessionForUser(user.getId());
         return sessionOpt.map(Session::getCode).orElse(null);
+    }
+
+    public String deleteSession(String code) {
+        Optional<Session> sessionOpt = sessionRepository.findByCode(code);
+        if (sessionOpt.isPresent()) {
+            Session session = sessionOpt.get();
+            // Vérifier qu'il n'y a plus de joueurs dans la session
+            java.util.UUID sessionId = session.getId();
+            java.util.List<com.wordle.backend.model.SessionPlayer> players = sessionPlayerRepository.findBySessionId(sessionId);
+            if (players != null && !players.isEmpty()) {
+                return "Impossible d'annuler : des joueurs sont encore dans la session.";
+            }
+            session.setStatus("CANCELLED");
+            sessionRepository.save(session);
+            return "Session annulée avec succès";
+        } else {
+            return "Session non trouvée pour le code: " + code;
+        }
     }
 }

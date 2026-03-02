@@ -68,6 +68,10 @@ watch(lastMessage, (msg) => {
       players.value = players.value.filter(p => String(p.id) !== String(msg.userId))
       nbrPlayers.value = players.value.length
       router.push('/multiplayer') // Rediriger vers l'accueil si un joueur quitte le lobby
+    }else if (msg && msg.type === 'error') {
+      if (msg.message === 'Impossible de rejoindre une session terminée ou annulée'){
+        router.push('/multiplayer')
+      }
     }
 })
 // Copie du code de session

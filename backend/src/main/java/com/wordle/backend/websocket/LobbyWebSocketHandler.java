@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
-
+import com.wordle.backend.service.*;
 import com.wordle.backend.model.User;
 import com.wordle.backend.model.Session;
 import com.wordle.backend.websocket.dto.MessageType;
@@ -31,6 +31,7 @@ import com.wordle.backend.websocket.dto.ChatMessageRequest;
 public class LobbyWebSocketHandler extends TextWebSocketHandler {
 
     private final LobbyService lobbyService;
+    private final SessionService sessionService;
     private final JwtValidator jwtValidator;
     private final UserService userService;
     private final WebSocketResponseFactory responseFactory;
@@ -42,9 +43,11 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
     public LobbyWebSocketHandler(LobbyService lobbyService,
                                  JwtValidator jwtValidator,
                                  UserService userService,
+                                 SessionService sessionService,
                                  WebSocketResponseFactory responseFactory,
                                  ObjectMapper mapper) {
         this.lobbyService = lobbyService;
+        this.sessionService = sessionService;
         this.jwtValidator = jwtValidator;
         this.userService = userService;
         this.responseFactory = responseFactory;
@@ -153,6 +156,10 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         broadcast(sessionCode, responseFactory.playerLeft(user, sessionCode));
                         // Optionnel : retirer la session du lobby
                         lobbies.getOrDefault(sessionCode, Set.of()).remove(session);
+                        // Tenter d'annuler la session si elle est vide
+                        logger.info("Tentative d'annulation de la session après départ du joueur " + user.getName() + " pour session code=" + sessionCode);
+                        String deleteMsg = sessionService.deleteSession(sessionCode);
+                        System.out.println("Tentative d'annulation de la session après départ: " + deleteMsg);
                     } catch (Exception e) {
                         session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la sortie du lobby: " + e.getMessage())));
                     }
