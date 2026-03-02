@@ -22,7 +22,7 @@ function sendMessage() {
 }
 
 watch(lastMessage, (msg) => {
-    console.log('Nouveau message WebSocket:', msg)
+    //console.log('Nouveau message WebSocket:', msg)
   if (msg && msg.type === 'CHAT') {
     messages.value.push({ user: msg.user || 'Anonyme', text: msg.text })
   }

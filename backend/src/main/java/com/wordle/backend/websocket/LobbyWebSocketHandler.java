@@ -124,23 +124,20 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                     }    
                 }
                 case LOBBYINFOS ->{
-                    //System.out.println("Demande de lobbyInfo reçue pour session code=" + root.get("sessionCode").asText());
                     String sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
-                    //System.out.println("Session code extrait: " + sessionCode);
+                    logger.info("Received LOBBYINFOS request for session code: " + sessionCode);
                     if (sessionCode == null) {
                         session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour LOBBYINFO")));
                         return;
                     }
-                    System.out.println("Récupération de la session pour code: " + sessionCode);
                     try {
                         Session s = lobbyService.getSessionByCode(sessionCode);
-                        System.out.println("la session récupérée: " + s);
+                        logger.info("Session retrieved for LOBBYINFOS: " + s);
                         // Récupère les infos du lobby (joueurs, paramètres, etc.)
                         String lobbyInfo = responseFactory.lobbyInfo(s);
-                        System.out.println("Envoi des infos du lobby pour session code=" + sessionCode + ": " + lobbyInfo);
                         session.sendMessage(new TextMessage(lobbyInfo));
                     } catch (Exception e) {
-                        System.out.println("Exception dans LOBBYINFOS: " + e);
+                        logger.severe("Error retrieving lobby info for session code " + sessionCode + ": " + e.getMessage());
                         e.printStackTrace();
                         session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la récupération du lobby: " + e.getMessage())));
                     }
@@ -163,6 +160,15 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                     } catch (Exception e) {
                         session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la sortie du lobby: " + e.getMessage())));
                     }
+                }
+                case START_GAME -> {
+                    // À implémenter : vérifier que l'utilisateur est l'hôte, changer le statut de la session, etc.
+                    session.sendMessage(new TextMessage(responseFactory.error("START_GAME non implémenté")));
+                }
+                case PING -> {
+                    // Juste pour tester la connexion, pas besoin de faire quoi que ce soit
+                    logger.info("Received ping from user " + user.getName());
+                    session.sendMessage(new TextMessage(responseFactory.pong()));
                 }
                 
             }

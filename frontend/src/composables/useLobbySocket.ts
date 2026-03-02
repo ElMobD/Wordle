@@ -50,10 +50,15 @@ export function useLobbySocket() {
 
   // Envoie un message JSON
   function send(data: any) {
-    if (socket.value && isConnected.value) {
-      socket.value.send(JSON.stringify(data))
-    }
+  if (
+    socket.value &&
+    socket.value.readyState === WebSocket.OPEN // <--- Ajoute cette vérification stricte
+  ) {
+    socket.value.send(JSON.stringify(data))
+  } else {
+    console.warn('WebSocket non prêt, message ignoré', data)
   }
+}
 
   // Ferme la connexion
   function disconnect() {

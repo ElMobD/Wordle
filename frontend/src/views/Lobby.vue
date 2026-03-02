@@ -4,12 +4,40 @@ import { useRouter, useRoute } from 'vue-router'
 import Header from '../components/Header.vue'
 import LobbyChat from '../components/LobbyChat.vue'
 import { useLobbySocket } from '../composables/useLobbySocket'
+import { useActivityPing } from '../composables/useActivityPing'
 import { watch } from 'vue'
 
 const router = useRouter()
 const route = useRoute()
 const sessionCode = route.params.sessionCode as string
 const { connect, send, isConnected, lastMessage} = useLobbySocket()
+// --- Retry logic for lobby info request ---
+let lobbyInfoReceived = false;
+let retryCount = 0;
+const maxRetries = 5;
+
+function sendLobbyInfoRequest() {
+  if (!isConnected.value) return;
+  send({ type: "LOBBYINFOS", sessionCode });
+  console.log("WebSocket connecté, envoi des infos du lobby");
+  retryCount++;
+  setTimeout(() => {
+    if (!lobbyInfoReceived && retryCount < maxRetries) {
+      sendLobbyInfoRequest();
+    }
+  }, 500);
+}
+
+function sendPing() {
+  console.log('Envoi d\'un ping pour maintenir la connexion WebSocket active')
+  send({ type: 'PING' })
+}
+
+const { lastActivity } = useActivityPing(
+  sendPing,         // fonction pour envoyer le ping
+  isConnected,      // ref ou fonction qui retourne l’état de connexion
+  connect           // fonction pour tenter une reconnexion
+)
 const lobbyInfo = ref<any>(null)
 const players = ref<any[]>([])
 const nbrPlayers = ref(0)
@@ -35,44 +63,44 @@ const showHelp = () => {
 onMounted(() => {
   userIdCookie.value = document.cookie.split('; ').find(row => row.startsWith('userId='))?.split('=')[1] || null
   if (!isConnected.value) connect(sessionCode)
-  const sendLobbyInfo = () => {
-    send({ type: 'LOBBYINFOS', sessionCode })
-  }
+  lobbyInfoReceived = false;
+  retryCount = 0;
   if (isConnected.value) {
-    sendLobbyInfo()
+    sendLobbyInfoRequest();
   } else {
     const stop = watch(isConnected, (ok) => {
       if (ok) {
-        sendLobbyInfo()
-        stop()
+        sendLobbyInfoRequest();
+        stop();
       }
-    })
+    });
   }
 })
 
 watch(lastMessage, (msg) => {
-    if (msg && msg.type === 'lobbyInfo') {
-      lobbyInfo.value = msg
-      // Trie pour mettre l'hôte en premier
-      const sortedPlayers = [...msg.players].sort((a, b) => {
-        if (a.isHost) return -1
-        if (b.isHost) return 1
-        return 0
-      })
-      players.value = sortedPlayers
-      nbrPlayers.value = players.value.length
-
-      isHost.value = String(lobbyInfo.value.hostId) === String(userIdCookie.value)
-    }else if (msg && msg.type === 'player_left') {
-      // Retirer le joueur de la liste
-      players.value = players.value.filter(p => String(p.id) !== String(msg.userId))
-      nbrPlayers.value = players.value.length
-      router.push('/multiplayer') // Rediriger vers l'accueil si un joueur quitte le lobby
-    }else if (msg && msg.type === 'error') {
-      if (msg.message === 'Impossible de rejoindre une session terminée ou annulée'){
-        router.push('/multiplayer')
-      }
+  console.log('WebSocket message reçu dans Lobby.vue:', msg)
+  if (msg && msg.type === 'lobbyInfo') {
+    lobbyInfoReceived = true;
+    lobbyInfo.value = msg;
+    // Trie pour mettre l'hôte en premier
+    const sortedPlayers = [...msg.players].sort((a, b) => {
+      if (a.isHost) return -1;
+      if (b.isHost) return 1;
+      return 0;
+    });
+    players.value = sortedPlayers;
+    nbrPlayers.value = players.value.length;
+    isHost.value = String(lobbyInfo.value.hostId) === String(userIdCookie.value);
+  } else if (msg && msg.type === 'player_left') {
+    // Retirer le joueur de la liste
+    players.value = players.value.filter(p => String(p.id) !== String(msg.userId));
+    nbrPlayers.value = players.value.length;
+    router.push('/multiplayer'); // Rediriger vers l'accueil si un joueur quitte le lobby
+  } else if (msg && msg.type === 'error') {
+    if (msg.message === 'Impossible de rejoindre une session terminée ou annulée') {
+      router.push('/multiplayer');
     }
+  }
 })
 // Copie du code de session
 const copied = ref(false)

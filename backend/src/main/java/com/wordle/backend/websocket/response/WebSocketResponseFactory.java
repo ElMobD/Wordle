@@ -109,4 +109,9 @@ public class WebSocketResponseFactory {
         node.put("sessionCode", sessionCode);
         return node.toString();
     }
+    public String pong() {
+        ObjectNode node = mapper.createObjectNode();
+        node.put("type", "pong");
+        return node.toString();
+    }
 }
