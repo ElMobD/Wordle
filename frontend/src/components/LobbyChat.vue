@@ -10,6 +10,9 @@ const messages = ref<Array<{ user: string; text: string; userId?: number; system
 const newMessage = ref('')
 const sessionCode = props.sessionCode
 
+// État pour ouvrir/fermer le chat
+const isOpen = ref(true)
+
 
 // Récupère l'userId courant depuis le cookie
 function getUserIdFromCookie() {
@@ -67,10 +70,29 @@ watch(lastMessage, (msg) => {
     })
   }
 })
+
 </script>
 
 <template>
-  <div class="absolute right-8 bottom-8 max-w-sm w-full flex flex-col bg-white/10 border border-white/20 rounded-2xl shadow-2xl backdrop-blur-xl z-50">
+  <!-- Bouton flottant pour ouvrir/fermer le chat -->
+  <button
+    class="fixed right-8 bottom-8 z-60 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg w-12 h-12 flex items-center justify-center transition-all"
+    @click="isOpen = !isOpen"
+    aria-label="Ouvrir/fermer le chat"
+    v-if="!isOpen"
+  >
+    💬
+  </button>
+  <div v-if="isOpen" class="absolute right-8 bottom-8 max-w-sm w-full flex flex-col bg-white/10 border border-white/20 rounded-2xl shadow-2xl backdrop-blur-xl z-50">
+    <!-- Bouton pour fermer le chat -->
+    <button
+      class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-800 text-white rounded-full w-8 h-8 flex items-center justify-center z-10"
+      @click="isOpen = false"
+      aria-label="Fermer le chat"
+      title="Fermer le chat"
+    >
+      ✕
+    </button>
     <div class="flex-1 overflow-y-auto p-4 max-h-64 scrollbar-none">
       <div v-for="(msg, idx) in messages" :key="idx" class="mb-2 flex items-start">
         <template v-if="msg.system">
