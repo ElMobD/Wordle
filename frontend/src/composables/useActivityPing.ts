@@ -12,7 +12,8 @@ import { ref, onMounted, onUnmounted, type Ref } from 'vue'
 export function useActivityPing(
   sendPing: () => void,
   isConnected: Ref<boolean> | (() => boolean),
-  connect: () => void,
+  connect: (sessionCode?: string) => void,
+  sessionCode?: string,
   intervalMs = 30_000,
   timeoutMs = 30_000
 ) {
@@ -30,7 +31,7 @@ export function useActivityPing(
     // Si websocket déconnecté, tenter de se reconnecter (anti-spam 5s)
     if (!getIsConnected() && Date.now() - lastReconnectAttempt > RECONNECT_COOLDOWN) {
       lastReconnectAttempt = Date.now()
-      connect()
+      connect(sessionCode)
     }
   }
 

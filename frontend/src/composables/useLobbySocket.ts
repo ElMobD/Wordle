@@ -9,25 +9,32 @@ function createLobbySocket() {
   var dataToSend: any = null
 
   // Ouvre la connexion WebSocket
-  function connect(code ?: string) {
+  function connect(code?: string) {
+    if (socket.value && socket.value.readyState === WebSocket.OPEN) {
+      console.warn('[useLobbySocket] Connexion déjà ouverte, on ne fait rien.')
+      return
+    }
+    if (socket.value && socket.value.readyState === WebSocket.CONNECTING) {
+      console.warn('[useLobbySocket] Connexion en cours, on ne fait rien.')
+      return
+    }
     socket.value = new WebSocket('ws://localhost/ws/lobby')
     socket.value.onopen = () => {
-        console.log('WebSocket connecté')
-        isConnected.value = true
-        error.value = null
-        if(code){
-          dataToSend = { type: 'JOIN', sessionCode: code }
-          console.log('Envoi du message JOIN:', dataToSend)
-          send(dataToSend)
-        }
+      console.log('WebSocket connecté')
+      isConnected.value = true
+      error.value = null
+      if (code) {
+        dataToSend = { type: 'JOIN', sessionCode: code }
+        send(dataToSend)
+      }
     }
     socket.value.onclose = () => {
-        console.log('WebSocket déconnecté')
-        isConnected.value = false
+      console.log('WebSocket déconnecté')
+      isConnected.value = false
     }
     socket.value.onerror = (e) => {
-        console.error('WebSocket error:', e)
-        error.value = 'Erreur WebSocket'
+      console.error('WebSocket error:', e)
+      error.value = 'Erreur WebSocket'
     }
     socket.value.onmessage = (event) => {
       try {
@@ -36,7 +43,7 @@ function createLobbySocket() {
           firstMessageReceived.value = parsed
         }
         lastMessage.value = parsed
-        if(parsed.userId) {
+        if (parsed.userId) {
           //console.log('User ID reçu:', parsed.userId)
           //document.cookie = `userId=${parsed.userId}; path=/` // Stocke le userId dans les cookies
         }
@@ -48,11 +55,9 @@ function createLobbySocket() {
 
   // Envoie un message JSON
   function send(data: any) {
-    if (
-      socket.value &&
-      socket.value.readyState === WebSocket.OPEN
-    ) {
+    if (socket.value && socket.value.readyState === WebSocket.OPEN) {
       socket.value.send(JSON.stringify(data))
+      console.log('Message envoyé via WebSocket:', data)
     } else {
       console.warn('WebSocket non prêt, message ignoré', data)
     }

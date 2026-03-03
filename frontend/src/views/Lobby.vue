@@ -19,7 +19,6 @@ const maxRetries = 5;
 function sendLobbyInfoRequest() {
   if (!isConnected.value) return;
   send({ type: "LOBBYINFOS", sessionCode });
-  console.log("WebSocket connecté, envoi des infos du lobby");
   retryCount++;
   setTimeout(() => {
     if (!lobbyInfoReceived && retryCount < maxRetries) {
@@ -36,7 +35,8 @@ function sendPing() {
 const { lastActivity } = useActivityPing(
   sendPing,         // fonction pour envoyer le ping
   isConnected,      // ref ou fonction qui retourne l’état de connexion
-  connect           // fonction pour tenter une reconnexion
+  (code) => connect(code), // fonction pour tenter une reconnexion avec sessionCode
+  sessionCode       // sessionCode à utiliser pour la reconnexion
 )
 const lobbyInfo = ref<any>(null)
 const players = ref<any[]>([])
@@ -78,7 +78,7 @@ onMounted(() => {
 })
 
 watch(lastMessage, (msg) => {
-  console.log('WebSocket message reçu dans Lobby.vue:', msg)
+  //console.log('WebSocket message reçu dans Lobby.vue:', msg)
   if (msg && msg.type === 'lobbyInfo') {
     lobbyInfoReceived = true;
     lobbyInfo.value = msg;
@@ -98,14 +98,16 @@ watch(lastMessage, (msg) => {
     //renvoyer le user vers /multiplayer si le userId correspond à celui qui a quitté (cas où un joueur ouvre plusieurs onglets et quitte le lobby depuis un autre onglet)
     console.log(String(msg.userId) === String(userIdCookie.value))
     if (String(msg.userId) === String(userIdCookie.value)) {
-      console.log('Vous avez quitté le lobby, redirection vers la page multiplayer');
       router.push('/multiplayer');
     }
+  } else if (msg && msg.type === 'player_joined') {
+    // Un joueur a rejoint : on redemande la liste complète au backend pour rester synchro
+    send({ type: "LOBBYINFOS", sessionCode });
   } else if (msg && msg.type === 'error') {
     if (msg.message === 'Impossible de rejoindre une session terminée ou annulée') {
       router.push('/multiplayer');
     }
-  }
+  } 
 })
 // Copie du code de session
 const copied = ref(false)
@@ -133,7 +135,7 @@ const quitLobby = () => {
       @profile="goToProfile"
     />
     <main class="flex flex-1 items-center justify-center p-4 md:p-8">
-      <LobbyChat />
+      <LobbyChat :session-code="sessionCode" />
       <div class="w-full max-w-xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl backdrop-blur-xl flex flex-col items-center px-4 py-8 md:px-8 md:py-12">
         <header class="w-full flex flex-col items-center mb-6">
           <h1 class="text-3xl font-extrabold text-white mb-1 tracking-wide text-center">Lobby de la Session</h1>

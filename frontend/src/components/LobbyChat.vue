@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
 import { useLobbySocket } from '../composables/useLobbySocket'
-import { useRoute } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
-const route = useRoute()
-const { user } = useAuth()
 
+const props = defineProps<{ sessionCode: string }>()
+const { user } = useAuth()
 const { connect, send, lastMessage, isConnected } = useLobbySocket()
 const messages = ref<Array<{ user: string; text: string; userId?: number; system?: boolean }>>([])
 const newMessage = ref('')
-const sessionCode = route.params.sessionCode as string
+const sessionCode = props.sessionCode
+
 
 // Récupère l'userId courant depuis le cookie
 function getUserIdFromCookie() {
@@ -21,7 +21,6 @@ const currentUserId = getUserIdFromCookie()
 onMounted(() => {
   if (!isConnected.value) {
     connect(sessionCode)
-    // On attend que la connexion soit établie avant d'envoyer la requête d'historique
     const unwatch = watch(isConnected, (ok) => {
       if (ok) {
         send({ type: 'GET_CHAT_HISTORY', sessionCode })
@@ -29,7 +28,9 @@ onMounted(() => {
       }
     })
   } else {
+    console.log('[LobbyChat] WebSocket déjà connectée, envoi direct de la requête d\'historique du chat')
     send({ type: 'GET_CHAT_HISTORY', sessionCode })
+    console.log('[LobbyChat] Requête d\'historique du chat envoyée:', { type: 'GET_CHAT_HISTORY', sessionCode })
   }
 })
 

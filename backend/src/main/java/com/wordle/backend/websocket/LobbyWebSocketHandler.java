@@ -54,7 +54,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         try {
-            System.out.println("Tentative de connexion WebSocket avec session ID: " + session.getId());
+            //System.out.println("Tentative de connexion WebSocket avec session ID: " + session.getId());
  
             User user = validateWebSocketUser(session);
             session.getAttributes().put("user", user);
@@ -64,11 +64,12 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
         } catch (Exception e) {
             session.close();
         }
-        System.out.println("Connexion WebSocket établie avec session ID: " + session.getId());
+        //System.out.println("Connexion WebSocket établie avec session ID: " + session.getId());
     }
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        logger.info("Received WebSocket message from session ID " + session.getId() + ": " + message.getPayload());
         User user = (User) session.getAttributes().get("user");
         try {
             JsonNode root = mapper.readTree(message.getPayload());
@@ -122,19 +123,19 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                 }
                 case LOBBYINFOS ->{
                     String sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
-                    logger.info("Received LOBBYINFOS request for session code: " + sessionCode);
+                    //logger.info("Received LOBBYINFOS request for session code: " + sessionCode);
                     if (sessionCode == null) {
                         session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour LOBBYINFO")));
                         return;
                     }
                     try {
                         Session s = lobbyService.getSessionByCode(sessionCode);
-                        logger.info("Session retrieved for LOBBYINFOS: " + s);
+                        //logger.info("Session retrieved for LOBBYINFOS: " + s);
                         // Récupère les infos du lobby (joueurs, paramètres, etc.)
                         String lobbyInfo = responseFactory.lobbyInfo(s);
                         session.sendMessage(new TextMessage(lobbyInfo));
                     } catch (Exception e) {
-                        logger.severe("Error retrieving lobby info for session code " + sessionCode + ": " + e.getMessage());
+                        //logger.severe("Error retrieving lobby info for session code " + sessionCode + ": " + e.getMessage());
                         e.printStackTrace();
                         session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la récupération du lobby: " + e.getMessage())));
                     }
@@ -168,10 +169,13 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                     session.sendMessage(new TextMessage(responseFactory.pong()));
                 }
                 case GET_CHAT_HISTORY -> {
+                    logger.info("Received GET_CHAT_HISTORY request for session code: " + root.get("sessionCode").asText() + " from user " + user.getName());
                     String sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
                     if (sessionCode == null) {
+                        logger.info("Session code manquant pour GET_CHAT_HISTORY");
                         if (session.isOpen()) {
                             try {
+
                                 session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour GET_CHAT_HISTORY")));
                             } catch (Exception e) {
                                 logger.severe("Erreur lors de l'envoi du message WebSocket: " + e.getMessage());
@@ -182,14 +186,17 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                     try {
                         Session s = lobbyService.getSessionByCode(sessionCode);
                         String chatHistory = responseFactory.chatHistory(s);
+                        logger.info("Chat history generated for session code " + sessionCode + ": " + chatHistory);
                         if (session.isOpen()) {
                             try {
+                                logger.info("Sending chat history to user " + user.getName() + " for session code " + sessionCode);
                                 session.sendMessage(new TextMessage(chatHistory));
                             } catch (Exception e) {
                                 logger.severe("Erreur lors de l'envoi du message WebSocket: " + e.getMessage());
                             }
                         }
                     } catch (Exception e) {
+                        logger.severe("Error retrieving chat history for session code " + sessionCode + ": " + e.getMessage());
                         if (session.isOpen()) {
                             try {
                                 session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la récupération de l'historique du chat: " + e.getMessage())));
