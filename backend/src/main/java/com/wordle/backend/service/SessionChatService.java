@@ -20,4 +20,8 @@ public class SessionChatService {
     public List<SessionChat> getMessagesBySession(UUID sessionId) {
         return sessionChatRepository.findBySessionId(sessionId);
     }
+
+    public List<SessionChat> getMessagesBySessionWithUser(UUID sessionId) {
+        return sessionChatRepository.findBySessionIdWithUser(sessionId);
+    }
 }

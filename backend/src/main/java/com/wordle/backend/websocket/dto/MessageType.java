@@ -8,4 +8,5 @@ public enum MessageType {
     LEAVE_LOBBY,
     START_GAME,
     PING,
+    GET_CHAT_HISTORY
 }

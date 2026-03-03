@@ -1,4 +1,3 @@
-
 package com.wordle.backend.websocket;
 
 import org.springframework.stereotype.Component;
@@ -7,8 +6,6 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import com.wordle.backend.application.LobbyService;
-import com.wordle.backend.service.JwtValidator;
-import com.wordle.backend.service.UserService;
 import com.wordle.backend.websocket.response.WebSocketResponseFactory;
 
 import net.minidev.json.JSONObject;
@@ -169,6 +166,38 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                     // Juste pour tester la connexion, pas besoin de faire quoi que ce soit
                     logger.info("Received ping from user " + user.getName());
                     session.sendMessage(new TextMessage(responseFactory.pong()));
+                }
+                case GET_CHAT_HISTORY -> {
+                    String sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
+                    if (sessionCode == null) {
+                        if (session.isOpen()) {
+                            try {
+                                session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour GET_CHAT_HISTORY")));
+                            } catch (Exception e) {
+                                logger.severe("Erreur lors de l'envoi du message WebSocket: " + e.getMessage());
+                            }
+                        }
+                        return;
+                    }
+                    try {
+                        Session s = lobbyService.getSessionByCode(sessionCode);
+                        String chatHistory = responseFactory.chatHistory(s);
+                        if (session.isOpen()) {
+                            try {
+                                session.sendMessage(new TextMessage(chatHistory));
+                            } catch (Exception e) {
+                                logger.severe("Erreur lors de l'envoi du message WebSocket: " + e.getMessage());
+                            }
+                        }
+                    } catch (Exception e) {
+                        if (session.isOpen()) {
+                            try {
+                                session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la récupération de l'historique du chat: " + e.getMessage())));
+                            } catch (Exception ex) {
+                                logger.severe("Erreur lors de l'envoi du message WebSocket: " + ex.getMessage());
+                            }
+                        }
+                    }
                 }
                 
             }

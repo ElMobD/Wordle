@@ -6,18 +6,23 @@ import com.wordle.backend.model.Session;
 import com.wordle.backend.model.SessionPlayer;
 import com.wordle.backend.model.User;
 import com.wordle.backend.repository.SessionPlayerRepository;
+import com.wordle.backend.service.SessionChatService;
+import com.wordle.backend.model.SessionChat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import java.util.List;
-import java.util.Map;
 
 @Component
 public class WebSocketResponseFactory {
     @Autowired
     private SessionPlayerRepository sessionPlayerRepository;
+    @Autowired
+    private SessionChatService sessionChatService;
     private final ObjectMapper mapper;
 
     public WebSocketResponseFactory(ObjectMapper mapper) {
@@ -112,6 +117,30 @@ public class WebSocketResponseFactory {
     public String pong() {
         ObjectNode node = mapper.createObjectNode();
         node.put("type", "pong");
+        return node.toString();
+    }
+    /**
+     * Renvoie l'historique des messages du chat pour une session donnée
+     */
+    public String chatHistory(Session session) {
+        ObjectNode node = mapper.createObjectNode();
+        node.put("type", "chat_history");
+        node.put("sessionCode", session.getCode());
+        // Utilise le fetch join pour charger les users avec les messages
+        List<SessionChat> messages = sessionChatService.getMessagesBySessionWithUser(session.getId());
+        var array = mapper.createArrayNode();
+        for (SessionChat msg : messages) {
+            User user = msg.getUser();
+            String userName = user != null ? user.getName() : "Anonyme";
+            Long userId = user != null ? user.getId() : null;
+            ObjectNode msgNode = mapper.createObjectNode();
+            msgNode.put("userId", userId);
+            msgNode.put("userName", userName);
+            msgNode.put("message", msg.getMessage());
+            msgNode.put("sentAt", msg.getSentAt().toString());
+            array.add(msgNode);
+        }
+        node.set("messages", array);
         return node.toString();
     }
 }

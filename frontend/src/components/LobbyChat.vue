@@ -2,15 +2,35 @@
 import { ref, watch, onMounted } from 'vue'
 import { useLobbySocket } from '../composables/useLobbySocket'
 import { useRoute } from 'vue-router'
+import { useAuth } from '../composables/useAuth'
 const route = useRoute()
+const { user } = useAuth()
 
 const { connect, send, lastMessage, isConnected } = useLobbySocket()
-const messages = ref<Array<{ user: string; text: string }>>([])
+const messages = ref<Array<{ user: string; text: string; userId?: number }>>([])
 const newMessage = ref('')
 const sessionCode = route.params.sessionCode as string
 
+// Récupère l'userId courant depuis le cookie
+function getUserIdFromCookie() {
+  const match = document.cookie.match(/(?:^|; )userId=([^;]*)/)
+  return match ? match[1] : undefined
+}
+const currentUserId = getUserIdFromCookie()
+
 onMounted(() => {
-  if (!isConnected.value) connect(sessionCode)
+  if (!isConnected.value) {
+    connect(sessionCode)
+    // On attend que la connexion soit établie avant d'envoyer la requête d'historique
+    const unwatch = watch(isConnected, (ok) => {
+      if (ok) {
+        send({ type: 'GET_CHAT_HISTORY', sessionCode })
+        unwatch()
+      }
+    })
+  } else {
+    send({ type: 'GET_CHAT_HISTORY', sessionCode })
+  }
 })
 
 function sendMessage() {
@@ -22,93 +42,50 @@ function sendMessage() {
 }
 
 watch(lastMessage, (msg) => {
-    //console.log('Nouveau message WebSocket:', msg)
-  if (msg && msg.type === 'CHAT') {
-    messages.value.push({ user: msg.user || 'Anonyme', text: msg.text })
+  console.log('Nouveau message WebSocket:', msg)
+  if (msg && msg.type === 'chat') {
+    messages.value.push({ user: msg.userName || 'Anonyme', text: msg.message, userId: msg.userId })
+  } else if (msg && msg.type === 'chat_history' && Array.isArray(msg.messages)) {
+    // On remplit l'historique du chat
+    messages.value = msg.messages.map((m: { userName?: string; message: string; userId?: number }) => ({
+      user: m.userName || 'Anonyme',
+      text: m.message,
+      userId: m.userId
+    }))
   }
 })
 </script>
 
 <template>
-  <div class="lobby-chat">
-    <div class="chat-messages">
-      <div v-for="(msg, idx) in messages" :key="idx" class="chat-message">
-        <span class="chat-user">{{ msg.user }} :</span>
-        <span class="chat-text">{{ msg.text }}</span>
+  <div class="absolute right-8 bottom-8 max-w-sm w-full flex flex-col bg-white/10 border border-white/20 rounded-2xl shadow-2xl backdrop-blur-xl z-50">
+    <div class="flex-1 overflow-y-auto p-4 max-h-64 scrollbar-none">
+      <div v-for="(msg, idx) in messages" :key="idx" class="mb-2 flex items-start">
+        <span :class="['font-bold mr-2 whitespace-nowrap', (currentUserId && String(msg.userId) === String(currentUserId)) ? 'text-green-400' : 'text-red-400']">
+          {{ msg.user }} :
+        </span>
+        <span class="text-white break-words">{{ msg.text }}</span>
       </div>
     </div>
-    <form class="chat-input-wrapper" @submit.prevent="sendMessage">
+    <form class="flex gap-2 p-4 border-t border-white/10 bg-white/5" @submit.prevent="sendMessage">
       <input
         v-model="newMessage"
         type="text"
-        class="chat-input"
+        class="flex-1 px-3 py-2 rounded-lg border border-gray-300 bg-white/20 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-green-400"
         placeholder="Écrire un message..."
         autocomplete="off"
       />
-      <button type="submit" class="chat-send-btn">Envoyer</button>
+      <button type="submit" class="bg-gradient-to-tr from-green-500 to-green-800 text-white rounded-lg px-4 py-2 font-semibold shadow hover:scale-105 transition-transform">
+        Envoyer
+      </button>
     </form>
   </div>
 </template>
 
 <style scoped>
- .lobby-chat {
-   position: absolute;
-   right: 2rem;
-   bottom: 2rem;
-   background: rgba(255,255,255,0.08);
-   border-radius: 16px;
-   padding: 1rem;
-   max-width: 350px;
-   width: 100%;
-   display: flex;
-   flex-direction: column;
-   box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-   z-index: 100;
- }
-.chat-messages {
-  flex: 1;
-  margin-bottom: 1rem;
-  max-height: 200px;
-  overflow-y: scroll;
-  scrollbar-width: none; /* Firefox */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
-.chat-messages::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
-}
-.chat-message {
-  margin-bottom: 0.5rem;
-  word-break: break-word;
-}
-.chat-user {
-  font-weight: bold;
-  color: #4caf50;
-  margin-right: 0.5rem;
-}
-.chat-text {
-  color: #fff;
-}
-.chat-input-wrapper {
-  display: flex;
-  gap: 0.5rem;
-}
-.chat-input {
-  flex: 1;
-  padding: 0.5rem;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  font-size: 1rem;
-}
-.chat-send-btn {
-  background: #4caf50;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.chat-send-btn:hover {
-  background: #388e3c;
+.scrollbar-none {
+  scrollbar-width: none;
 }
 </style>
