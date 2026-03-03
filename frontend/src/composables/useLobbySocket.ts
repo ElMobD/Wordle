@@ -1,6 +1,6 @@
 import { ref, onUnmounted } from 'vue'
 
-export function useLobbySocket() {
+function createLobbySocket() {
   const socket = ref<WebSocket | null>(null)
   const isConnected = ref(false)
   const firstMessageReceived = ref<any>(null)
@@ -10,9 +10,7 @@ export function useLobbySocket() {
 
   // Ouvre la connexion WebSocket
   function connect(code ?: string) {
-    // Utilise le chemin du backend (adapter si besoin)
     socket.value = new WebSocket('ws://localhost/ws/lobby')
-    
     socket.value.onopen = () => {
         console.log('WebSocket connecté')
         isConnected.value = true
@@ -50,15 +48,15 @@ export function useLobbySocket() {
 
   // Envoie un message JSON
   function send(data: any) {
-  if (
-    socket.value &&
-    socket.value.readyState === WebSocket.OPEN // <--- Ajoute cette vérification stricte
-  ) {
-    socket.value.send(JSON.stringify(data))
-  } else {
-    console.warn('WebSocket non prêt, message ignoré', data)
+    if (
+      socket.value &&
+      socket.value.readyState === WebSocket.OPEN
+    ) {
+      socket.value.send(JSON.stringify(data))
+    } else {
+      console.warn('WebSocket non prêt, message ignoré', data)
+    }
   }
-}
 
   // Ferme la connexion
   function disconnect() {
@@ -81,4 +79,12 @@ export function useLobbySocket() {
     error,
     socket
   }
+}
+
+let socketInstance: ReturnType<typeof createLobbySocket> | null = null
+export function useLobbySocket() {
+  if (!socketInstance) {
+    socketInstance = createLobbySocket()
+  }
+  return socketInstance
 }

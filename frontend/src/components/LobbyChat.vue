@@ -7,7 +7,7 @@ const route = useRoute()
 const { user } = useAuth()
 
 const { connect, send, lastMessage, isConnected } = useLobbySocket()
-const messages = ref<Array<{ user: string; text: string; userId?: number }>>([])
+const messages = ref<Array<{ user: string; text: string; userId?: number; system?: boolean }>>([])
 const newMessage = ref('')
 const sessionCode = route.params.sessionCode as string
 
@@ -42,7 +42,7 @@ function sendMessage() {
 }
 
 watch(lastMessage, (msg) => {
-  console.log('Nouveau message WebSocket:', msg)
+  console.log('Nouveau message WebSocket dans lobbyChat:', msg)
   if (msg && msg.type === 'chat') {
     messages.value.push({ user: msg.userName || 'Anonyme', text: msg.message, userId: msg.userId })
   } else if (msg && msg.type === 'chat_history' && Array.isArray(msg.messages)) {
@@ -52,6 +52,18 @@ watch(lastMessage, (msg) => {
       text: m.message,
       userId: m.userId
     }))
+  } else if (msg && msg.type === 'player_joined') {
+    messages.value.push({
+      user: '',
+      text: `${msg.userName} a rejoint le lobby.`,
+      system: true
+    })
+  } else if (msg && msg.type === 'player_left') {
+    messages.value.push({
+      user: '',
+      text: `${msg.userName} a quitté le lobby.`,
+      system: true
+    })
   }
 })
 </script>
@@ -60,10 +72,15 @@ watch(lastMessage, (msg) => {
   <div class="absolute right-8 bottom-8 max-w-sm w-full flex flex-col bg-white/10 border border-white/20 rounded-2xl shadow-2xl backdrop-blur-xl z-50">
     <div class="flex-1 overflow-y-auto p-4 max-h-64 scrollbar-none">
       <div v-for="(msg, idx) in messages" :key="idx" class="mb-2 flex items-start">
-        <span :class="['font-bold mr-2 whitespace-nowrap', (currentUserId && String(msg.userId) === String(currentUserId)) ? 'text-green-400' : 'text-red-400']">
-          {{ msg.user }} :
-        </span>
-        <span class="text-white break-words">{{ msg.text }}</span>
+        <template v-if="msg.system">
+          <span class="italic text-gray-400">{{ msg.text }}</span>
+        </template>
+        <template v-else>
+          <span :class="['font-bold mr-2 whitespace-nowrap', (currentUserId && String(msg.userId) === String(currentUserId)) ? 'text-green-400' : 'text-red-400']">
+            {{ msg.user }} :
+          </span>
+          <span class="text-white break-words">{{ msg.text }}</span>
+        </template>
       </div>
     </div>
     <form class="flex gap-2 p-4 border-t border-white/10 bg-white/5" @submit.prevent="sendMessage">

@@ -95,7 +95,12 @@ watch(lastMessage, (msg) => {
     // Retirer le joueur de la liste
     players.value = players.value.filter(p => String(p.id) !== String(msg.userId));
     nbrPlayers.value = players.value.length;
-    router.push('/multiplayer'); // Rediriger vers l'accueil si un joueur quitte le lobby
+    //renvoyer le user vers /multiplayer si le userId correspond à celui qui a quitté (cas où un joueur ouvre plusieurs onglets et quitte le lobby depuis un autre onglet)
+    console.log(String(msg.userId) === String(userIdCookie.value))
+    if (String(msg.userId) === String(userIdCookie.value)) {
+      console.log('Vous avez quitté le lobby, redirection vers la page multiplayer');
+      router.push('/multiplayer');
+    }
   } else if (msg && msg.type === 'error') {
     if (msg.message === 'Impossible de rejoindre une session terminée ou annulée') {
       router.push('/multiplayer');
