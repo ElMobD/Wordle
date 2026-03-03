@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, nextTick } from 'vue'
+// Ref pour le conteneur des messages
+const messagesContainer = ref<HTMLElement | null>(null)
 import { useLobbySocket } from '../composables/useLobbySocket'
 import { useAuth } from '../composables/useAuth'
 
@@ -49,6 +51,11 @@ watch(lastMessage, (msg) => {
   console.log('Nouveau message WebSocket dans lobbyChat:', msg)
   if (msg && msg.type === 'chat') {
     messages.value.push({ user: msg.userName || 'Anonyme', text: msg.message, userId: msg.userId })
+    nextTick(() => {
+      if (messagesContainer.value) {
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+      }
+    })
   } else if (msg && msg.type === 'chat_history' && Array.isArray(msg.messages)) {
     // On remplit l'historique du chat
     messages.value = msg.messages.map((m: { userName?: string; message: string; userId?: number }) => ({
@@ -56,17 +63,32 @@ watch(lastMessage, (msg) => {
       text: m.message,
       userId: m.userId
     }))
+    nextTick(() => {
+      if (messagesContainer.value) {
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+      }
+    })
   } else if (msg && msg.type === 'player_joined') {
     messages.value.push({
       user: '',
       text: `${msg.userName} a rejoint le lobby.`,
       system: true
     })
+    nextTick(() => {
+      if (messagesContainer.value) {
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+      }
+    })
   } else if (msg && msg.type === 'player_left') {
     messages.value.push({
       user: '',
       text: `${msg.userName} a quitté le lobby.`,
       system: true
+    })
+    nextTick(() => {
+      if (messagesContainer.value) {
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+      }
     })
   }
 })
@@ -93,7 +115,7 @@ watch(lastMessage, (msg) => {
     >
       ✕
     </button>
-    <div class="flex-1 overflow-y-auto p-4 max-h-64 scrollbar-none">
+    <div class="flex-1 overflow-y-auto p-4 max-h-64 scrollbar-none" ref="messagesContainer">
       <div v-for="(msg, idx) in messages" :key="idx" class="mb-2 flex items-start">
         <template v-if="msg.system">
           <span class="italic text-gray-400">{{ msg.text }}</span>
