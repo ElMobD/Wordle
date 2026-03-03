@@ -49,13 +49,10 @@ function sendMessage() {
 
 watch(lastMessage, (msg) => {
   console.log('Nouveau message WebSocket dans lobbyChat:', msg)
+  let shouldScroll = false;
   if (msg && msg.type === 'chat') {
     messages.value.push({ user: msg.userName || 'Anonyme', text: msg.message, userId: msg.userId })
-    nextTick(() => {
-      if (messagesContainer.value) {
-        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-      }
-    })
+    shouldScroll = true;
   } else if (msg && msg.type === 'chat_history' && Array.isArray(msg.messages)) {
     // On remplit l'historique du chat
     messages.value = msg.messages.map((m: { userName?: string; message: string; userId?: number }) => ({
@@ -63,31 +60,37 @@ watch(lastMessage, (msg) => {
       text: m.message,
       userId: m.userId
     }))
-    nextTick(() => {
-      if (messagesContainer.value) {
-        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-      }
-    })
+    shouldScroll = true;
   } else if (msg && msg.type === 'player_joined') {
     messages.value.push({
       user: '',
       text: `${msg.userName} a rejoint le lobby.`,
       system: true
     })
-    nextTick(() => {
-      if (messagesContainer.value) {
-        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-      }
-    })
+    shouldScroll = true;
   } else if (msg && msg.type === 'player_left') {
     messages.value.push({
       user: '',
       text: `${msg.userName} a quitté le lobby.`,
       system: true
     })
+    shouldScroll = true;
+  }
+  if (shouldScroll) {
     nextTick(() => {
       if (messagesContainer.value) {
-        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+      }
+    });
+  }
+})
+
+// Scroll vers le bas quand on ouvre le chat
+watch(isOpen, (open) => {
+  if (open) {
+    nextTick(() => {
+      if (messagesContainer.value) {
+        messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
       }
     })
   }
