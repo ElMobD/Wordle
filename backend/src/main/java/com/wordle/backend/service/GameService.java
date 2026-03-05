@@ -76,6 +76,11 @@ public class GameService {
         Game game = new Game(session, roundNumber, answer);
         return gameRepository.save(game);
     }
+    
+    // Récupérer la Game d'un joueur spécifique dans une session/round
+    public Optional<Game> getGameBySessionAndUser(UUID sessionId, Integer roundNumber, Long userId) {
+        return gameRepository.findBySessionIdAndRoundNumberAndUserId(sessionId, roundNumber, userId);
+    }
 
 
     public Game submitGuess(UUID gameId, Long userId, String word) {

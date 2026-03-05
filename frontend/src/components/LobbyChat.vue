@@ -5,6 +5,7 @@ const messagesContainer = ref<HTMLElement | null>(null)
 import { useLobbySocket } from '../composables/useLobbySocket'
 import { useAuth } from '../composables/useAuth'
 
+
 const props = defineProps<{ sessionCode: string }>()
 const { user } = useAuth()
 const { connect, send, lastMessage, isConnected } = useLobbySocket()
@@ -14,6 +15,7 @@ const sessionCode = props.sessionCode
 
 // État pour ouvrir/fermer le chat
 const isOpen = ref(true)
+
 
 
 // Récupère l'userId courant depuis le cookie

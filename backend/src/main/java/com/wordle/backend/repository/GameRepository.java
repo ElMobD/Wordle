@@ -29,4 +29,7 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
 
     // Toutes les games d'une session
     List<Game> findBySessionIdOrderByRoundNumber(UUID sessionId);
+    
+    // Game d'un joueur spécifique dans une session/round
+    Optional<Game> findBySessionIdAndRoundNumberAndUserId(UUID sessionId, Integer roundNumber, Long userId);
 }

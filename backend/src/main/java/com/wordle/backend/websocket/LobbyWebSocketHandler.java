@@ -38,6 +38,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
     private final WebSocketResponseFactory responseFactory;
     private final ObjectMapper mapper;
     private final GameStartService gameStartService;
+    private final GameService gameService;
     private static final Logger logger = Logger.getLogger(LobbyWebSocketHandler.class.getName());
 
     private final Map<String, Set<WebSocketSession>> lobbies = new ConcurrentHashMap<>();
@@ -60,6 +61,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
         this.responseFactory = responseFactory;
         this.mapper = mapper;
         this.gameStartService = gameStartService;
+        this.gameService = gameService;
     }
 
     @Override
@@ -211,6 +213,40 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         logger.severe("Erreur lors du démarrage de la partie: " + e.getMessage());
                         e.printStackTrace();
                         session.sendMessage(new TextMessage(responseFactory.error("Erreur lors du démarrage de la partie: " + e.getMessage())));
+                    }
+                }
+                case LOAD_GAME -> {
+                    String sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
+                    logger.info("LOAD_GAME reçu avec sessionCode=" + sessionCode + " from user " + user.getName());
+                    if (sessionCode == null) {
+                        session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour LOAD_GAME")));
+                        return;
+                    }
+                    try {
+                        // Récupérer la session pour obtenir le currentRound
+                        Session s = lobbyService.getSessionByCode(sessionCode);
+                        Integer roundNumber = s.getCurrentRound();
+                        
+                        if (roundNumber == null || roundNumber == 0) {
+                            session.sendMessage(new TextMessage(responseFactory.error("Aucun round en cours pour cette session")));
+                            return;
+                        }
+                        
+                        // Trouver la Game de ce joueur pour ce round
+                        java.util.Optional<Game> optionalGame = gameService.getGameBySessionAndUser(s.getId(), roundNumber, user.getId());
+                        
+                        if (optionalGame.isPresent()) {
+                            Game playerGame = optionalGame.get();
+                            session.sendMessage(new TextMessage(responseFactory.loadGame(playerGame)));
+                            logger.info("Game chargée pour userId=" + user.getId() + ", gameId=" + playerGame.getId());
+                        } else {
+                            session.sendMessage(new TextMessage(responseFactory.error("Aucune game trouvée pour ce joueur dans ce round")));
+                            logger.warning("Aucune game trouvée pour userId=" + user.getId() + " dans session " + sessionCode + " round " + roundNumber);
+                        }
+                    } catch (Exception e) {
+                        logger.severe("Erreur lors du chargement de la partie: " + e.getMessage());
+                        e.printStackTrace();
+                        session.sendMessage(new TextMessage(responseFactory.error("Erreur lors du chargement de la partie: " + e.getMessage())));
                     }
                 }
                 case PING -> {

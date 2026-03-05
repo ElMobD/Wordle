@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { authenticatedFetch } from '../utils/api'
 import Header from '../components/Header.vue'
 import Modal from '../components/Modal.vue'
@@ -11,7 +11,7 @@ import { useLobbySocket } from '../composables/useLobbySocket'
 const router = useRouter()
 const route = useRoute()
 const sessionCode = route.params.sessionCode as string
-const gameId = route.params.gameId as string
+const gameId = ref(route.params.gameId as string)
 const isHelpModalOpen = ref(false)
 const isResultModalOpen = ref(false)
 const guesses = ref<any[]>([])
@@ -24,25 +24,35 @@ const error = ref('')
 const { connect, send, isConnected, lastMessage} = useLobbySocket()
 
 onMounted(async () => {
-  try {
-    // Récupère la partie multi (GET)
-    const response = await authenticatedFetch(`http://localhost/api/games/${gameId}`)
-    if (response.ok) {
-      const data = await response.json()
-      guesses.value = data.guesses || []
-      gameStatus.value = data.status
-      maxGuesses.value = data.maxAttempts || 6
-      wordLength.value = data.wordLength || 5
-    } else {
-      error.value = 'Erreur lors du chargement de la partie'
+  connect()
+  
+  const checkConnection = setInterval(() => {
+    if (isConnected.value) {
+      clearInterval(checkConnection)
+      send({ type: 'LOAD_GAME', sessionCode })
     }
-  } catch (err) {
-    error.value = 'Erreur réseau'
-    console.error(err)
-  } finally {
+  }, 100)
+  
+  window.addEventListener('keydown', handlePhysicalKeyPress)
+})
+watch(lastMessage, (msg) => {
+  if (!msg) return
+  
+  if (msg.type === 'load_game') {
+    gameId.value = msg.gameId
+    maxGuesses.value = msg.maxAttempts
+    wordLength.value = msg.answerLength
+    gameStatus.value = msg.status
+    
+    if (msg.guesses && Array.isArray(msg.guesses)) {
+      guesses.value = msg.guesses.map((g: any) => ({
+        word: g.guess,
+        result: g.resultMask
+      }))
+    }
+    
     loading.value = false
   }
-  window.addEventListener('keydown', handlePhysicalKeyPress)
 })
 
 onUnmounted(() => {
@@ -52,30 +62,8 @@ const quitLobby = () => {
   send({ type: 'LEAVE_LOBBY', sessionCode })
 }
 const submitWord = async (word: string) => {
-  if (!gameId || gameStatus.value !== 'IN_PROGRESS') return
-  try {
-    const response = await authenticatedFetch(
-      `http://localhost/api/games/${gameId}/guess`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ word: word.toUpperCase() })
-      }
-    )
-    if (response.ok) {
-      const data = await response.json()
-      guesses.value = data.guesses || []
-      gameStatus.value = data.status
-      if (gameStatus.value === 'WON' || gameStatus.value === 'LOST') {
-        isResultModalOpen.value = true
-      }
-    } else {
-      const errData = await response.json()
-      error.value = errData.error || 'Erreur lors de la soumission'
-    }
-  } catch (err) {
-    error.value = 'Erreur réseau'
-    console.error(err)
-  }
+  if (!gameId.value || gameStatus.value !== 'IN_PROGRESS') return
+  
 }
 
 const goLobby = () => {

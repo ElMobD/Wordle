@@ -14,9 +14,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import java.util.logging.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
 
 @Component
 public class WebSocketResponseFactory {
@@ -154,6 +156,33 @@ public class WebSocketResponseFactory {
         node.put("maxAttempts", game.getMaxAttempts());
         node.put("status", game.getStatus().toString());
         node.put("sessionId", game.getSession().getId().toString());
+        return node.toString();
+    }
+    
+    public String loadGame(com.wordle.backend.model.Game game) {
+        ObjectNode node = mapper.createObjectNode();
+        node.put("type", "load_game");
+        node.put("gameId", game.getId().toString());
+        node.put("roundNumber", game.getRoundNumber());
+        node.put("answerLength", game.getAnswer().length());
+        node.put("maxAttempts", game.getMaxAttempts());
+        node.put("attemptsUsed", game.getAttemptsUsed());
+        node.put("status", game.getStatus().toString());
+        node.put("sessionId", game.getSession().getId().toString());
+        
+        // Ajouter les guesses (historique des tentatives)
+        ArrayNode guessesArray = mapper.createArrayNode();
+        if (game.getGuesses() != null) {
+            for (com.wordle.backend.model.Guess guess : game.getGuesses()) {
+                ObjectNode guessNode = mapper.createObjectNode();
+                guessNode.put("attemptNo", guess.getAttemptNo());
+                guessNode.put("guess", guess.getGuess());
+                guessNode.put("resultMask", guess.getResultMask());
+                guessesArray.add(guessNode);
+            }
+        }
+        node.set("guesses", guessesArray);
+        
         return node.toString();
     }
 }
