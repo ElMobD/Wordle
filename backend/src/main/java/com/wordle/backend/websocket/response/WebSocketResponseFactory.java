@@ -83,8 +83,8 @@ public class WebSocketResponseFactory {
         info.put("status", session.getStatus());
         info.put("host", session.getHost().getName());
         info.put("hostId", session.getHost().getId());
-        logger.info("Session " + session.getCode() + " status: " + session.getStatus() + ", currentGameId: " + session.getCurrentGameId());
-        info.put("currentGameId", session.getCurrentGameId() != null ? session.getCurrentGameId().toString() : null);
+        logger.info("Session " + session.getCode() + " status: " + session.getStatus() + ", currentRound: " + session.getCurrentRound());
+        info.put("currentRound", session.getCurrentRound());
 
         // Récupère les joueurs via le repository
         List<Map<String, Object>> players = new ArrayList<>();

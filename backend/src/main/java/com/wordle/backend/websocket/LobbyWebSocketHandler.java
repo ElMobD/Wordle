@@ -25,6 +25,7 @@ import com.wordle.backend.websocket.dto.ChatMessageRequest;
 import com.wordle.backend.service.WordService;
 import com.wordle.backend.repository.SessionGamePlayerRepository;
 import com.wordle.backend.repository.SessionPlayerRepository;
+import java.util.List;
 
 
 @Component
@@ -177,14 +178,35 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         return;
                     }
                     try {
-                        // Call transactional service to start game
-                        Game game = gameStartService.startGameTransactional(sessionCode, user);
+                        // Call transactional service to start game - retourne maintenant une liste de games (une par joueur)
+                        List<Game> games = gameStartService.startGameTransactional(sessionCode, user);
                         // Get updated session for broadcast
                         Session updatedSession = gameStartService.getSessionByCode(sessionCode);
-                        // Broadcast to all players
+                        // Broadcast lobbyInfo to all players
                         broadcast(sessionCode, responseFactory.lobbyInfo(updatedSession));
-                        broadcast(sessionCode, responseFactory.gameStart(game));
-                        logger.info("Broadcasts envoyés");
+                        
+                        // Envoyer à chaque joueur SA propre game
+                        Set<WebSocketSession> lobbySessions = lobbies.getOrDefault(sessionCode, Set.of());
+                        for (WebSocketSession ws : lobbySessions) {
+                            if (ws.isOpen()) {
+                                User wsUser = (User) ws.getAttributes().get("user");
+                                if (wsUser != null) {
+                                    // Trouver la game de ce joueur
+                                    Game playerGame = games.stream()
+                                        .filter(g -> g.getUser() != null && g.getUser().getId().equals(wsUser.getId()))
+                                        .findFirst()
+                                        .orElse(null);
+                                    
+                                    if (playerGame != null) {
+                                        ws.sendMessage(new TextMessage(responseFactory.gameStart(playerGame)));
+                                        logger.info("Game envoyée à userId=" + wsUser.getId() + ", gameId=" + playerGame.getId());
+                                    } else {
+                                        logger.warning("Aucune game trouvée pour userId=" + wsUser.getId());
+                                    }
+                                }
+                            }
+                        }
+                        logger.info("Broadcasts envoyés pour " + games.size() + " games");
                     } catch (Exception e) {
                         logger.severe("Erreur lors du démarrage de la partie: " + e.getMessage());
                         e.printStackTrace();

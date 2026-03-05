@@ -29,8 +29,8 @@ public class Session {
     @Column(nullable = false)
     private String status = "LOBBY";
 
-    @Column(name = "current_game_id")
-    private UUID currentGameId;
+    @Column(name = "current_round")
+    private Integer currentRound = 0;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -110,12 +110,12 @@ public class Session {
         this.updatedAt = updatedAt;
     }
 
-    public UUID getCurrentGameId() {
-        return currentGameId;
+    public Integer getCurrentRound() {
+        return currentRound;
     }
 
-    public void setCurrentGameId(UUID currentGameId) {
-        this.currentGameId = currentGameId;
+    public void setCurrentRound(Integer currentRound) {
+        this.currentRound = currentRound;
     }
     // equals, hashCode à générer si besoin
 }

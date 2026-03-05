@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     time_limit      INT NOT NULL DEFAULT 60,
     word_length     INT NOT NULL DEFAULT 5,
     status          VARCHAR(20) NOT NULL DEFAULT 'LOBBY' CHECK (status IN ('LOBBY', 'IN_PROGRESS', 'FINISHED', 'CANCELLED')),
-    current_game_id UUID,
+    current_round   INT DEFAULT 0,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -63,11 +63,6 @@ CREATE TABLE IF NOT EXISTS guesses (
     result_mask     VARCHAR(10) NOT NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-
--- Ajout de la contrainte de foreign key pour current_game_id après création de games
-ALTER TABLE sessions 
-ADD CONSTRAINT fk_sessions_current_game 
-FOREIGN KEY (current_game_id) REFERENCES games(id) ON DELETE SET NULL;
 
 -- ============================================================================
 -- SECTION 3 : MODE MULTIJOUEUR
