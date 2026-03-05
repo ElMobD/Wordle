@@ -11,9 +11,14 @@ public class Guess {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "game_id", nullable = false)
     private Game game;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(name = "attempt_no", nullable = false)
     private Integer attemptNo;
@@ -30,11 +35,19 @@ public class Guess {
     public Guess() {
     }
 
-    public Guess(Game game, Integer attemptNo, String guess, String resultMask) {
+    public Guess(Game game, User user, Integer attemptNo, String guess, String resultMask) {
         this.game = game;
+        this.user = user;
         this.attemptNo = attemptNo;
         this.guess = guess;
         this.resultMask = resultMask;
+    }
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 
     @PrePersist

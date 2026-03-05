@@ -13,4 +13,7 @@ public interface GuessRepository extends JpaRepository<Guess, Long> {
     List<Guess> findByGameIdOrderByAttemptNo(UUID gameId);
 
     int countByGameId(UUID gameId);
+
+    // Guesses d'un joueur pour une game (utile en multi)
+    List<Guess> findByGameIdAndUserIdOrderByAttemptNo(UUID gameId, Long userId);
 }

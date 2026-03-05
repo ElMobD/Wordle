@@ -143,4 +143,15 @@ public class WebSocketResponseFactory {
         node.set("messages", array);
         return node.toString();
     }
+    public String gameStart(com.wordle.backend.model.Game game) {
+        ObjectNode node = mapper.createObjectNode();
+        node.put("type", "game_start");
+        node.put("gameId", game.getId().toString());
+        node.put("roundNumber", game.getRoundNumber());
+        node.put("answerLength", game.getAnswer().length());
+        node.put("maxAttempts", game.getMaxAttempts());
+        node.put("status", game.getStatus().toString());
+        node.put("sessionId", game.getSession().getId().toString());
+        return node.toString();
+    }
 }

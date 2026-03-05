@@ -46,7 +46,14 @@ const routes = [
   {
     path: '/lobby/:sessionCode',
     component: () => import('../views/Lobby.vue'),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: ':gameId',
+        component: () => import('../views/GamePlay.vue'),
+        meta: { requiresAuth: true }
+      }
+    ]
   },
   {
     path: '/',

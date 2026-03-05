@@ -7,9 +7,7 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import com.wordle.backend.application.LobbyService;
 import com.wordle.backend.websocket.response.WebSocketResponseFactory;
-
 import net.minidev.json.JSONObject;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Map;
@@ -18,16 +16,21 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import com.wordle.backend.service.*;
 import com.wordle.backend.model.User;
+import com.wordle.backend.model.Game;
 import com.wordle.backend.model.Session;
 import com.wordle.backend.websocket.dto.MessageType;
 import com.wordle.backend.websocket.dto.CreateSessionRequest;
 import com.wordle.backend.websocket.dto.JoinSessionRequest;
 import com.wordle.backend.websocket.dto.ChatMessageRequest;
+import com.wordle.backend.service.WordService;
+
 
 @Component
 public class LobbyWebSocketHandler extends TextWebSocketHandler {
 
     private final LobbyService lobbyService;
+    private final WordService wordService;
+    private final GameService gameService;
     private final SessionService sessionService;
     private final JwtValidator jwtValidator;
     private final UserService userService;
@@ -39,8 +42,10 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
 
     public LobbyWebSocketHandler(LobbyService lobbyService,
                                  JwtValidator jwtValidator,
+                                 WordService wordService,
                                  UserService userService,
                                  SessionService sessionService,
+                                 GameService gameService,
                                  WebSocketResponseFactory responseFactory,
                                  ObjectMapper mapper) {
         this.lobbyService = lobbyService;
@@ -49,6 +54,8 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
         this.userService = userService;
         this.responseFactory = responseFactory;
         this.mapper = mapper;
+        this.gameService = gameService;
+        this.wordService = wordService;
     }
 
     @Override
@@ -64,7 +71,6 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
         } catch (Exception e) {
             session.close();
         }
-        //System.out.println("Connexion WebSocket établie avec session ID: " + session.getId());
     }
 
     @Override
@@ -91,6 +97,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                             code = parts.length > 1 ? parts[1] : null;
                         }
                         session.sendMessage(new TextMessage(responseFactory.errorWithSessionCode(msg, code)));
+                        
                     }
                 }
                 case JOIN -> {
@@ -160,8 +167,39 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                     }
                 }
                 case START_GAME -> {
-                    // À implémenter : vérifier que l'utilisateur est l'hôte, changer le statut de la session, etc.
-                    session.sendMessage(new TextMessage(responseFactory.error("START_GAME non implémenté")));
+                    String sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
+                    if (sessionCode == null) {
+                        session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour START_GAME")));
+                        return;
+                    }
+                    try {
+                        Session s = lobbyService.getSessionByCode(sessionCode);
+                        if (!s.getHost().getId().equals(user.getId())) {
+                            session.sendMessage(new TextMessage(responseFactory.error("Seul l'hôte peut démarrer la partie.")));
+                            return;
+                        }
+                        if (!"LOBBY".equals(s.getStatus())) {
+                            session.sendMessage(new TextMessage(responseFactory.error("La partie est déjà démarrée ou terminée.")));
+                            return;
+                        }
+                        // 1. Changer le statut
+                        s.setStatus("IN_PROGRESS");
+                        s.setUpdatedAt(java.time.LocalDateTime.now());
+                        sessionService.save(s);
+
+                        // 2. Créer la Game du round 1
+                        int roundNumber = 1;
+                        String answer = wordService.getRandomWord();
+                        Game game = gameService.createGameMulti(s.getId(), roundNumber, answer);
+
+                        // 3. Diffuser la Game à tous les joueurs
+                        // (On peut créer une méthode dans responseFactory si besoin)
+                        broadcast(sessionCode, responseFactory.lobbyInfo(s));
+                        broadcast(sessionCode, responseFactory.gameStart(game));
+                        // 4. Timer à ajouter plus tard
+                    } catch (Exception e) {
+                        session.sendMessage(new TextMessage(responseFactory.error("Erreur lors du démarrage de la partie: " + e.getMessage())));
+                    }
                 }
                 case PING -> {
                     // Juste pour tester la connexion, pas besoin de faire quoi que ce soit
@@ -246,14 +284,13 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
             }
         }
     }
-    if (token == null) throw new Exception("Missing token");
-    io.jsonwebtoken.Claims claims = jwtValidator.validateToken(token);
-    String email = claims.getSubject();
-    User user = userService.findByEmail(email).orElse(null);
-    if (user == null) throw new Exception("User not found");
-    return user;
-}
-
+        if (token == null) throw new Exception("Missing token");
+        io.jsonwebtoken.Claims claims = jwtValidator.validateToken(token);
+        String email = claims.getSubject();
+        User user = userService.findByEmail(email).orElse(null);
+        if (user == null) throw new Exception("User not found");
+        return user;
+    }
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         // Optionnel : retirer la session de toutes les lobbies

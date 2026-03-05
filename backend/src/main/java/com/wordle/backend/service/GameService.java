@@ -6,6 +6,9 @@ import com.wordle.backend.model.User;
 import com.wordle.backend.repository.GameRepository;
 import com.wordle.backend.repository.GuessRepository;
 import com.wordle.backend.repository.UserRepository;
+import com.wordle.backend.model.Session;
+import com.wordle.backend.repository.SessionRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,10 +19,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+
 @Service
 @Transactional
 public class GameService {
 
+    @Autowired
+    private SessionRepository sessionRepository;
+    
     @Autowired
     private GameRepository gameRepository;
 
@@ -32,45 +39,63 @@ public class GameService {
     @Autowired
     private WordService wordService;
 
-    public Game createGame(Long userId, Game.GameType gameType) {
+
+    // Création d'une partie solo
+    public Game createGameSolo(Long userId, Game.GameType gameType) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
 
         if (gameType == Game.GameType.DAILY) {
-            // Vérifier que le joueur n'a pas déjà un daily d'aujourd'hui
-            // Le daily est global et change chaque jour, donc on cherche une partie DAILY
-            // créée aujourd'hui pour cet utilisateur
             LocalDate today = LocalDate.now();
             LocalDateTime startOfDay = today.atStartOfDay();
             LocalDateTime endOfDay = today.atTime(23, 59, 59);
-            
             Optional<Game> dailyToday = gameRepository.findByUserIdAndGameTypeAndCreatedAtBetween(
                     userId,
                     gameType,
                     startOfDay,
                     endOfDay
             );
-            
             if (dailyToday.isPresent()) {
-                // L'utilisateur a déjà un daily aujourd'hui, on le retourne
                 return dailyToday.get();
             }
         }
-
         String answer = (gameType == Game.GameType.DAILY)
                 ? wordService.getDailyWord()
                 : wordService.getRandomWord();
-
         Game game = new Game(user, gameType, answer);
         return gameRepository.save(game);
     }
+        // Récupérer une partie multi par session et round
+    public Optional<Game> getGameBySessionAndRound(UUID sessionId, Integer roundNumber) {
+        return gameRepository.findBySessionIdAndRoundNumber(sessionId, roundNumber);
+    }
+    // Création d'une partie multi
+    public Game createGameMulti(UUID sessionId, Integer roundNumber, String answer) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("Session non trouvée"));
+        Game game = new Game(session, roundNumber, answer);
+        return gameRepository.save(game);
+    }
+
 
     public Game submitGuess(UUID gameId, Long userId, String word) {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new RuntimeException("Partie non trouvee"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
 
-        if (!game.getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("Acces refuse");
+        // Vérification d'accès solo/multi
+        if (game.getUser() != null) {
+            // Solo
+            if (!game.getUser().getId().equals(userId)) {
+                throw new IllegalArgumentException("Acces refuse");
+            }
+        } else {
+            // Multi : vérifier que le user fait partie de la session
+            if (game.getSession() == null) {
+                throw new IllegalArgumentException("Session manquante pour une partie multi");
+            }
+            // TODO : vérifier l'appartenance à la session (à faire dans SessionService ou ici)
         }
 
         if (game.getStatus() != Game.GameStatus.IN_PROGRESS) {
@@ -94,7 +119,7 @@ public class GameService {
 
         String mask = buildResultMask(guessWord, answer);
 
-        Guess guess = new Guess(game, game.getAttemptsUsed() + 1, guessWord, mask);
+        Guess guess = new Guess(game, user, game.getAttemptsUsed() + 1, guessWord, mask);
         guessRepository.save(guess);
 
         game.setAttemptsUsed(game.getAttemptsUsed() + 1);

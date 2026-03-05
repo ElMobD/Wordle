@@ -29,7 +29,8 @@ public class GameController {
     @Autowired
     private UserRepository userRepository;
 
-    // Créer une partie (DAILY ou RANDOM)
+
+    // Créer une partie solo (DAILY ou RANDOM)
     @PostMapping
     public ResponseEntity<?> createGame(@RequestBody Map<String, String> body, Authentication authentication) {
         try {
@@ -38,11 +39,9 @@ public class GameController {
             if (gameTypeValue == null || gameTypeValue.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "gameType requis"));
             }
-
             Game.GameType gameType = Game.GameType.valueOf(gameTypeValue.trim().toUpperCase());
-            Game game = gameService.createGame(userId, gameType);
-
-            return ResponseEntity.ok(buildGameResponse(game));
+            Game game = gameService.createGameSolo(userId, gameType);
+            return ResponseEntity.ok(buildGameResponse(game, userId));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (RuntimeException e) {
@@ -50,13 +49,35 @@ public class GameController {
         }
     }
 
-    // Récupérer une partie
+    // Créer une partie multi (SESSION)
+    @PostMapping("/multiplayer")
+    public ResponseEntity<?> createGameMulti(@RequestBody Map<String, Object> body, Authentication authentication) {
+        try {
+            String sessionIdStr = (String) body.get("sessionId");
+            Integer roundNumber = (Integer) body.get("roundNumber");
+            String answer = (String) body.get("answer");
+            if (sessionIdStr == null || roundNumber == null || answer == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "sessionId, roundNumber et answer requis"));
+            }
+            UUID sessionId = UUID.fromString(sessionIdStr);
+            Game game = gameService.createGameMulti(sessionId, roundNumber, answer);
+            // On peut retourner la game sans guesses ici
+            return ResponseEntity.ok(buildGameResponse(game, null));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+
+    // Récupérer une partie solo
     @GetMapping("/{gameId}")
     public ResponseEntity<?> getGame(@PathVariable UUID gameId, Authentication authentication) {
         try {
             Long userId = getUserId(authentication);
             Game game = gameService.getGame(gameId, userId);
-            return ResponseEntity.ok(buildGameResponse(game));
+            return ResponseEntity.ok(buildGameResponse(game, userId));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (RuntimeException e) {
@@ -64,7 +85,24 @@ public class GameController {
         }
     }
 
-    // Soumettre un mot
+    // Récupérer une partie multi par session/round
+    @GetMapping("/multiplayer")
+    public ResponseEntity<?> getGameMulti(@RequestParam String sessionId, @RequestParam Integer roundNumber, Authentication authentication) {
+        try {
+            Long userId = getUserId(authentication);
+            UUID sessionUUID = UUID.fromString(sessionId);
+            Game game = gameService.getGameBySessionAndRound(sessionUUID, roundNumber)
+                    .orElseThrow(() -> new RuntimeException("Partie non trouvée pour cette session/round"));
+            return ResponseEntity.ok(buildGameResponse(game, userId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+
+    // Soumettre un mot (solo ou multi)
     @PostMapping("/{gameId}/guess")
     public ResponseEntity<?> submitGuess(
             @PathVariable UUID gameId,
@@ -79,7 +117,7 @@ public class GameController {
             }
 
             Game game = gameService.submitGuess(gameId, userId, word);
-            return ResponseEntity.ok(buildGameResponse(game));
+            return ResponseEntity.ok(buildGameResponse(game, userId));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (RuntimeException e) {
@@ -87,7 +125,7 @@ public class GameController {
         }
     }
 
-    private Map<String, Object> buildGameResponse(Game game) {
+    private Map<String, Object> buildGameResponse(Game game, Long userId) {
         Map<String, Object> response = new HashMap<>();
         response.put("id", game.getId());
         response.put("gameType", game.getGameType());
@@ -97,8 +135,14 @@ public class GameController {
         response.put("createdAt", game.getCreatedAt());
         response.put("completedAt", game.getCompletedAt());
 
-        // Récupérer les guesses via le repository (évite les problèmes lazy loading)
-        List<Guess> guesses = guessRepository.findByGameIdOrderByAttemptNo(game.getId());
+        List<Guess> guesses;
+        if (userId != null) {
+            // Solo ou guesses du joueur courant en multi
+            guesses = guessRepository.findByGameIdAndUserIdOrderByAttemptNo(game.getId(), userId);
+        } else {
+            // Toutes les guesses (cas rare, ex: admin)
+            guesses = guessRepository.findByGameIdOrderByAttemptNo(game.getId());
+        }
         List<Map<String, Object>> simplifiedGuesses = new java.util.ArrayList<>();
         for (Guess guess : guesses) {
             Map<String, Object> guessMap = new HashMap<>();

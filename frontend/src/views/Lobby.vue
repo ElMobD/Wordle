@@ -59,6 +59,9 @@ const goToProfile = () => {
 const showHelp = () => {
   // TODO: implémenter modal aide
 }
+const startGame = () => {
+  send({ type: 'START_GAME', sessionCode });
+}
 
 onMounted(() => {
   userIdCookie.value = document.cookie.split('; ').find(row => row.startsWith('userId='))?.split('=')[1] || null
@@ -107,7 +110,10 @@ watch(lastMessage, (msg) => {
     if (msg.message === 'Impossible de rejoindre une session terminée ou annulée') {
       router.push('/multiplayer');
     }
-  } 
+  } else if (msg && msg.type === 'game_start') {
+    // Redirige tous les joueurs vers la page de jeu du round
+    router.push(`/lobby/${sessionCode}/${msg.gameId}`)
+  }
 })
 // Copie du code de session
 const copied = ref(false)
@@ -125,7 +131,7 @@ const quitLobby = () => {
 
 
 <template>
-  <div class="relative flex flex-col min-h-screen w-full">
+  <div v-if="!$route.params.gameId" class="relative flex flex-col min-h-screen w-full">
     <Header 
       title="LOBBY"
       @home="goHome"
@@ -135,7 +141,6 @@ const quitLobby = () => {
       @profile="goToProfile"
     />
     <main class="flex flex-1 items-center justify-center p-4 md:p-8">
-      <LobbyChat :session-code="sessionCode" />
       <div class="w-full max-w-xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl backdrop-blur-xl flex flex-col items-center px-4 py-8 md:px-8 md:py-12">
         <header class="w-full flex flex-col items-center mb-6">
           <h1 class="text-3xl font-extrabold text-white mb-1 tracking-wide text-center">Lobby de la Session</h1>
@@ -186,7 +191,7 @@ const quitLobby = () => {
           </div>
         </div>
         <div class="mt-8 flex flex-col items-center">
-          <button v-if="isHost" class="bg-gradient-to-tr from-green-500 to-green-800 text-white font-extrabold rounded-full px-10 py-3 text-lg shadow-lg flex items-center gap-2 hover:scale-105 transition-transform">
+          <button v-if="isHost" @click="startGame" class="bg-gradient-to-tr from-green-500 to-green-800 text-white font-extrabold rounded-full px-10 py-3 text-lg shadow-lg flex items-center gap-2 hover:scale-105 transition-transform">
             <span class="text-xl">🚀</span> LANCER LA PARTIE
           </button>
           <p v-else class="text-teal-200 italic animate-pulse mt-2">En attente du lancement par l'hôte...</p>
@@ -199,4 +204,6 @@ const quitLobby = () => {
       </div>
     </main>
   </div>
+  <router-view v-else />
+  <LobbyChat :session-code="sessionCode" />
 </template>

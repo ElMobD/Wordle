@@ -13,9 +13,17 @@ public class Game {
     @Column(columnDefinition = "uuid")
     private UUID id;
 
+
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @JoinColumn(name = "user_id", nullable = true)
+    private User user; // NULL si multi
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "session_id", nullable = true)
+    private Session session; // NULL si solo
+
+    @Column(name = "round_number")
+    private Integer roundNumber; // NULL si solo
 
     @Enumerated(EnumType.STRING)
     @Column(name = "game_type", nullable = false)
@@ -46,9 +54,19 @@ public class Game {
     public Game() {
     }
 
+
+    // Partie solo
     public Game(User user, GameType gameType, String answer) {
         this.user = user;
         this.gameType = gameType;
+        this.answer = answer;
+    }
+
+    // Partie multi
+    public Game(Session session, Integer roundNumber, String answer) {
+        this.session = session;
+        this.roundNumber = roundNumber;
+        this.gameType = GameType.SESSION;
         this.answer = answer;
     }
 
@@ -153,7 +171,23 @@ public class Game {
 
     public enum GameType {
         DAILY,
-        RANDOM
+        RANDOM,
+        SESSION
+    }
+    public Session getSession() {
+        return session;
+    }
+
+    public void setSession(Session session) {
+        this.session = session;
+    }
+
+    public Integer getRoundNumber() {
+        return roundNumber;
+    }
+
+    public void setRoundNumber(Integer roundNumber) {
+        this.roundNumber = roundNumber;
     }
 
     public enum GameStatus {
