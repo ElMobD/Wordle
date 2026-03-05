@@ -6,6 +6,7 @@ import Header from '../components/Header.vue'
 import Modal from '../components/Modal.vue'
 import WordleGrid from '../components/WordleGrid.vue'
 import WordleKeyboard from '../components/WordleKeyboard.vue'
+import { useLobbySocket } from '../composables/useLobbySocket'
 
 const router = useRouter()
 const route = useRoute()
@@ -20,6 +21,7 @@ const maxGuesses = ref(6)
 const wordLength = ref(5)
 const loading = ref(true)
 const error = ref('')
+const { connect, send, isConnected, lastMessage} = useLobbySocket()
 
 onMounted(async () => {
   try {
@@ -46,7 +48,9 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('keydown', handlePhysicalKeyPress)
 })
-
+const quitLobby = () => {
+  send({ type: 'LEAVE_LOBBY', sessionCode })
+}
 const submitWord = async (word: string) => {
   if (!gameId || gameStatus.value !== 'IN_PROGRESS') return
   try {
@@ -157,6 +161,9 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
               <WordleKeyboard :guesses="guesses" @keyPress="handleKeyPress" />
             </div>
           </div>
+          <button @click="quitLobby" class="bg-red-600 hover:bg-red-700 text-white font-bold rounded-full px-8 py-3 shadow-lg transition-all">
+            Quitter le lobby
+          </button>
         </template>
       </div>
     </main>
@@ -195,7 +202,6 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
             <span class="text-sm text-white/70 uppercase tracking-wide">Maximum</span>
           </div>
         </div>
-        <button @click="goLobby" class="bg-indigo-600/80 border border-indigo-600 text-white px-8 py-3 rounded-xl text-base font-semibold cursor-pointer transition-all mt-4 hover:bg-indigo-600 hover:scale-105 hover:shadow-lg">Retour au lobby</button>
       </div>
     </Modal>
   </div>

@@ -237,7 +237,9 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                 
             }
         } catch (Exception e) {
-            session.sendMessage(new TextMessage(responseFactory.error("Malformed message or internal error: " + e.getMessage())));
+            if (session.isOpen()) {
+                session.sendMessage(new TextMessage(responseFactory.error("Malformed message or internal error: " + e.getMessage())));
+            }
         }
     }
 
@@ -249,8 +251,12 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
         System.out.println("Broadcasting message to lobby with code: " + code + " - Payload: " + payload);
         System.out.println("Taille du lobby avant broadcast: " + lobbies.getOrDefault(code, Set.of()).size());
         for (WebSocketSession ws : lobbies.getOrDefault(code, Set.of())) {
-            System.out.println("Broadcasting to session ID: " + ws.getId() + " - Payload: " + payload);
-            ws.sendMessage(new TextMessage(payload));
+            if (ws.isOpen()) {
+                System.out.println("Broadcasting to session ID: " + ws.getId() + " - Payload: " + payload);
+                ws.sendMessage(new TextMessage(payload));
+            } else {
+                System.out.println("Skipping closed WebSocket session ID: " + ws.getId());
+            }
         }
         System.out.println("Fin du Broadcast pour le code: " + code);
     }
