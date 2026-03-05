@@ -23,19 +23,20 @@ import com.wordle.backend.websocket.dto.CreateSessionRequest;
 import com.wordle.backend.websocket.dto.JoinSessionRequest;
 import com.wordle.backend.websocket.dto.ChatMessageRequest;
 import com.wordle.backend.service.WordService;
+import com.wordle.backend.repository.SessionGamePlayerRepository;
+import com.wordle.backend.repository.SessionPlayerRepository;
 
 
 @Component
 public class LobbyWebSocketHandler extends TextWebSocketHandler {
 
     private final LobbyService lobbyService;
-    private final WordService wordService;
-    private final GameService gameService;
     private final SessionService sessionService;
     private final JwtValidator jwtValidator;
     private final UserService userService;
     private final WebSocketResponseFactory responseFactory;
     private final ObjectMapper mapper;
+    private final GameStartService gameStartService;
     private static final Logger logger = Logger.getLogger(LobbyWebSocketHandler.class.getName());
 
     private final Map<String, Set<WebSocketSession>> lobbies = new ConcurrentHashMap<>();
@@ -47,15 +48,17 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                                  SessionService sessionService,
                                  GameService gameService,
                                  WebSocketResponseFactory responseFactory,
-                                 ObjectMapper mapper) {
+                                 ObjectMapper mapper,
+                                 SessionGamePlayerRepository sessionGamePlayerRepository,
+                                 SessionPlayerRepository sessionPlayerRepository,
+                                 GameStartService gameStartService) {
         this.lobbyService = lobbyService;
         this.sessionService = sessionService;
         this.jwtValidator = jwtValidator;
         this.userService = userService;
         this.responseFactory = responseFactory;
         this.mapper = mapper;
-        this.gameService = gameService;
-        this.wordService = wordService;
+        this.gameStartService = gameStartService;
     }
 
     @Override
@@ -168,36 +171,23 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                 }
                 case START_GAME -> {
                     String sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
+                    logger.info("START_GAME reçu avec sessionCode=" + sessionCode);
                     if (sessionCode == null) {
                         session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour START_GAME")));
                         return;
                     }
                     try {
-                        Session s = lobbyService.getSessionByCode(sessionCode);
-                        if (!s.getHost().getId().equals(user.getId())) {
-                            session.sendMessage(new TextMessage(responseFactory.error("Seul l'hôte peut démarrer la partie.")));
-                            return;
-                        }
-                        if (!"LOBBY".equals(s.getStatus())) {
-                            session.sendMessage(new TextMessage(responseFactory.error("La partie est déjà démarrée ou terminée.")));
-                            return;
-                        }
-                        // 1. Changer le statut
-                        s.setStatus("IN_PROGRESS");
-                        s.setUpdatedAt(java.time.LocalDateTime.now());
-                        sessionService.save(s);
-
-                        // 2. Créer la Game du round 1
-                        int roundNumber = 1;
-                        String answer = wordService.getRandomWord();
-                        Game game = gameService.createGameMulti(s.getId(), roundNumber, answer);
-
-                        // 3. Diffuser la Game à tous les joueurs
-                        // (On peut créer une méthode dans responseFactory si besoin)
-                        broadcast(sessionCode, responseFactory.lobbyInfo(s));
+                        // Call transactional service to start game
+                        Game game = gameStartService.startGameTransactional(sessionCode, user);
+                        // Get updated session for broadcast
+                        Session updatedSession = gameStartService.getSessionByCode(sessionCode);
+                        // Broadcast to all players
+                        broadcast(sessionCode, responseFactory.lobbyInfo(updatedSession));
                         broadcast(sessionCode, responseFactory.gameStart(game));
-                        // 4. Timer à ajouter plus tard
+                        logger.info("Broadcasts envoyés");
                     } catch (Exception e) {
+                        logger.severe("Erreur lors du démarrage de la partie: " + e.getMessage());
+                        e.printStackTrace();
                         session.sendMessage(new TextMessage(responseFactory.error("Erreur lors du démarrage de la partie: " + e.getMessage())));
                     }
                 }
@@ -291,6 +281,9 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
         if (user == null) throw new Exception("User not found");
         return user;
     }
+    
+
+    
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         // Optionnel : retirer la session de toutes les lobbies

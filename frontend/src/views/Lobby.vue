@@ -94,6 +94,9 @@ watch(lastMessage, (msg) => {
     players.value = sortedPlayers;
     nbrPlayers.value = players.value.length;
     isHost.value = String(lobbyInfo.value.hostId) === String(userIdCookie.value);
+    if(msg.status === 'IN_PROGRESS' && msg.currentGameId !== null) {
+      router.push(`/lobby/${sessionCode}/${msg.currentGameId}`)
+    }
   } else if (msg && msg.type === 'player_left') {
     // Retirer le joueur de la liste
     players.value = players.value.filter(p => String(p.id) !== String(msg.userId));

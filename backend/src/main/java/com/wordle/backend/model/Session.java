@@ -29,6 +29,9 @@ public class Session {
     @Column(nullable = false)
     private String status = "LOBBY";
 
+    @Column(name = "current_game_id")
+    private UUID currentGameId;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -105,6 +108,14 @@ public class Session {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public UUID getCurrentGameId() {
+        return currentGameId;
+    }
+
+    public void setCurrentGameId(UUID currentGameId) {
+        this.currentGameId = currentGameId;
     }
     // equals, hashCode à générer si besoin
 }

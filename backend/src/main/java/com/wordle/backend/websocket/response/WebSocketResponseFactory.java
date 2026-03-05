@@ -7,13 +7,14 @@ import com.wordle.backend.model.SessionPlayer;
 import com.wordle.backend.model.User;
 import com.wordle.backend.repository.SessionPlayerRepository;
 import com.wordle.backend.service.SessionChatService;
+import com.wordle.backend.websocket.LobbyWebSocketHandler;
 import com.wordle.backend.model.SessionChat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
+import java.util.logging.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +25,7 @@ public class WebSocketResponseFactory {
     @Autowired
     private SessionChatService sessionChatService;
     private final ObjectMapper mapper;
-
+    private static final Logger logger = Logger.getLogger(LobbyWebSocketHandler.class.getName());
     public WebSocketResponseFactory(ObjectMapper mapper) {
         this.mapper = mapper;
     }
@@ -73,7 +74,6 @@ public class WebSocketResponseFactory {
     }
 
     public String lobbyInfo(Session session) {
-        System.out.println("Génération de lobbyInfo pour session code=" + session.getCode());
         Map<String, Object> info = new HashMap<>();
         info.put("type", "lobbyInfo");
         info.put("sessionCode", session.getCode());
@@ -83,6 +83,8 @@ public class WebSocketResponseFactory {
         info.put("status", session.getStatus());
         info.put("host", session.getHost().getName());
         info.put("hostId", session.getHost().getId());
+        logger.info("Session " + session.getCode() + " status: " + session.getStatus() + ", currentGameId: " + session.getCurrentGameId());
+        info.put("currentGameId", session.getCurrentGameId() != null ? session.getCurrentGameId().toString() : null);
 
         // Récupère les joueurs via le repository
         List<Map<String, Object>> players = new ArrayList<>();
