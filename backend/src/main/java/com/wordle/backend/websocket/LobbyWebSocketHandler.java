@@ -28,6 +28,7 @@ import com.wordle.backend.service.WordService;
 import com.wordle.backend.repository.SessionGamePlayerRepository;
 import com.wordle.backend.repository.SessionPlayerRepository;
 import java.util.List;
+import java.util.UUID;
 
 
 @Component
@@ -232,25 +233,41 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                     try {
                         // Obtenir la session pour récupérer son UUID
                         Session s = lobbyService.getSessionByCode(sessionCode);
+                        UUID sessionId = s.getId();
                         
                         // Annuler toutes les games du joueur dans cette session
-                        gameService.cancelUserGamesInSession(s.getId(), user.getId());
+                        gameService.cancelUserGamesInSession(sessionId, user.getId());
                         logger.info("Games annulées pour userId=" + user.getId() + " dans session " + sessionCode);
                         
+                        // Gérer le changement d'hôte AVANT que le joueur ne quitte
+                        boolean sessionCancelled = sessionService.handleHostChange(sessionId, user.getId());
+                        
+                        // Retirer le joueur de la session
                         lobbyService.leaveSession(user, sessionCode);
                         
                         // Envoyer une confirmation au client qui quitte
                         session.sendMessage(new TextMessage(responseFactory.playerLeft(user, sessionCode)));
                         
-                        // Broadcaster aux autres joueurs
-                        broadcast(sessionCode, responseFactory.playerLeft(user, sessionCode));
-                        // Optionnel : retirer la session du lobby
+                        // Retirer la session du lobby
                         lobbies.getOrDefault(sessionCode, Set.of()).remove(session);
-                        // Tenter d'annuler la session si elle est vide
-                        logger.info("Tentative d'annulation de la session après départ du joueur " + user.getName() + " pour session code=" + sessionCode);
-                        String deleteMsg = sessionService.deleteSession(sessionCode);
-                        System.out.println("Tentative d'annulation de la session après départ: " + deleteMsg);
+                        
+                        if (sessionCancelled) {
+                            // La session a été annulée, broadcaster à tous
+                            logger.info("Session " + sessionCode + " annulée (plus de joueurs)");
+                            broadcast(sessionCode, responseFactory.error("Session annulée"));
+                        } else {
+                            // Broadcaster le départ aux autres joueurs
+                            broadcast(sessionCode, responseFactory.playerLeft(user, sessionCode));
+                            
+                            // Récupérer et broadcaster les infos mises à jour (avec le nouvel hôte si changé)
+                            Session updatedSession = lobbyService.getSessionByCode(sessionCode);
+                            if (updatedSession != null) {
+                                broadcast(sessionCode, responseFactory.lobbyInfo(updatedSession));
+                            }
+                        }
                     } catch (Exception e) {
+                        logger.severe("Erreur lors de la sortie du lobby: " + e.getMessage());
+                        e.printStackTrace();
                         session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la sortie du lobby: " + e.getMessage())));
                     }
                 }

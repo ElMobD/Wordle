@@ -10,6 +10,7 @@ import com.wordle.backend.service.SessionPlayerService;
 import com.wordle.backend.service.SessionChatService;
 import com.wordle.backend.repository.SessionRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 import java.time.LocalDateTime;
 
@@ -49,6 +50,8 @@ public class LobbyService {
 
         return sessionService.createSession(session);
     }
+    
+    @Transactional
     public Session getSessionByCode(String code) {
         System.out.println("Recherche de session dans la fonction getSessionByCode pour code: " + code);
         Session session = null;

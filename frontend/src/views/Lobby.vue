@@ -96,13 +96,13 @@ watch(lastMessage, (msg) => {
     isHost.value = String(lobbyInfo.value.hostId) === String(userIdCookie.value);
     // Note: Ne pas naviguer automatiquement ici, le message game_start s'en charge
   } else if (msg && msg.type === 'player_left') {
-    // Retirer le joueur de la liste
-    players.value = players.value.filter(p => String(p.id) !== String(msg.userId));
-    nbrPlayers.value = players.value.length;
     //renvoyer le user vers /multiplayer si le userId correspond à celui qui a quitté (cas où un joueur ouvre plusieurs onglets et quitte le lobby depuis un autre onglet)
     console.log(String(msg.userId) === String(userIdCookie.value))
     if (String(msg.userId) === String(userIdCookie.value)) {
       router.push('/multiplayer');
+    } else {
+      // Un joueur a quitté : redemander les infos complètes pour mettre à jour l'hôte et les joueurs
+      send({ type: "LOBBYINFOS", sessionCode });
     }
   } else if (msg && msg.type === 'player_joined') {
     // Un joueur a rejoint : on redemande la liste complète au backend pour rester synchro

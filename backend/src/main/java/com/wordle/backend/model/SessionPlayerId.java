@@ -7,12 +7,6 @@ import java.util.UUID;
 
 @Embeddable
 public class SessionPlayerId implements Serializable {
-        public UUID getSessionId() {
-            return sessionId;
-        }
-        public void setSessionId(UUID sessionId) {
-            this.sessionId = sessionId;
-        }
     private UUID sessionId;
     private Long userId;
 
@@ -21,6 +15,23 @@ public class SessionPlayerId implements Serializable {
         this.sessionId = sessionId;
         this.userId = userId;
     }
+    
+    public UUID getSessionId() {
+        return sessionId;
+    }
+    
+    public void setSessionId(UUID sessionId) {
+        this.sessionId = sessionId;
+    }
+    
+    public Long getUserId() {
+        return userId;
+    }
+    
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+    
     // Getters, setters, equals, hashCode
     @Override
     public boolean equals(Object o) {
