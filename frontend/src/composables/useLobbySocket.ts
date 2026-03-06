@@ -12,6 +12,11 @@ function createLobbySocket() {
   function connect(code?: string) {
     if (socket.value && socket.value.readyState === WebSocket.OPEN) {
       console.warn('[useLobbySocket] Connexion déjà ouverte, on ne fait rien.')
+      if (code) {
+        // Si on est en JOIN mode et la connexion est déjà ouverte, envoyer le JOIN
+        dataToSend = { type: 'JOIN', sessionCode: code }
+        send(dataToSend)
+      }
       return
     }
     if (socket.value && socket.value.readyState === WebSocket.CONNECTING) {
@@ -25,6 +30,7 @@ function createLobbySocket() {
       error.value = null
       if (code) {
         dataToSend = { type: 'JOIN', sessionCode: code }
+        console.log("On va essayer de te faire rejoindre la session avec le code:", code)
         send(dataToSend)
       }
     }

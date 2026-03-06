@@ -127,6 +127,12 @@ public class GameService {
         Guess guess = new Guess(game, user, game.getAttemptsUsed() + 1, guessWord, mask);
         guessRepository.save(guess);
 
+        // Ajouter le guess à la liste pour que l'objet Game soit à jour
+        if (game.getGuesses() == null) {
+            game.setGuesses(new java.util.ArrayList<>());
+        }
+        game.getGuesses().add(guess);
+
         game.setAttemptsUsed(game.getAttemptsUsed() + 1);
 
         if (guessWord.equals(answer)) {
@@ -153,6 +159,18 @@ public class GameService {
 
     public List<Game> getUserGames(Long userId) {
         return gameRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    }
+
+    // Annuler toutes les games d'un joueur dans une session (quand il quitte le lobby)
+    public void cancelUserGamesInSession(UUID sessionId, Long userId) {
+        List<Game> userGames = gameRepository.findBySessionIdAndUserId(sessionId, userId);
+        for (Game game : userGames) {
+            if (game.getStatus() == Game.GameStatus.IN_PROGRESS) {
+                game.setStatus(Game.GameStatus.CANCELED);
+                game.setCompletedAt(LocalDateTime.now());
+                gameRepository.save(game);
+            }
+        }
     }
 
     private String buildResultMask(String guess, String answer) {

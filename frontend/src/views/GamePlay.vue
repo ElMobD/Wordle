@@ -21,9 +21,11 @@ const maxGuesses = ref(6)
 const wordLength = ref(5)
 const loading = ref(true)
 const error = ref('')
+const userIdCookie = ref<string | null>(null)
 const { connect, send, isConnected, lastMessage} = useLobbySocket()
 
 onMounted(async () => {
+  userIdCookie.value = document.cookie.split('; ').find(row => row.startsWith('userId='))?.split('=')[1] || null
   connect()
   
   const checkConnection = setInterval(() => {
@@ -37,7 +39,7 @@ onMounted(async () => {
 })
 watch(lastMessage, (msg) => {
   if (!msg) return
-  
+  console.table(msg)
   if (msg.type === 'load_game') {
     gameId.value = msg.gameId
     maxGuesses.value = msg.maxAttempts
@@ -47,11 +49,34 @@ watch(lastMessage, (msg) => {
     if (msg.guesses && Array.isArray(msg.guesses)) {
       guesses.value = msg.guesses.map((g: any) => ({
         word: g.guess,
-        result: g.resultMask
+        mask: g.resultMask
       }))
     }
     
     loading.value = false
+    if (msg.status === 'CANCELED') {
+      router.push("/homepage")
+    }
+  } else if (msg.type === 'guess_submitted') {
+    // Ajouter la nouvelle tentative à la liste
+    guesses.value.push({
+      word: msg.word,
+      mask: msg.resultMask
+    })
+    
+    // Mettre à jour l'état du jeu
+    gameStatus.value = msg.status
+    
+    // Mettre à jour les attempts
+    if (msg.status === 'WON' || msg.status === 'LOST') {
+      isResultModalOpen.value = true
+    }
+  }else if (msg.type === 'player_left') {
+    // Si le joueur courant quitte, retourner à l'homepage
+    if (String(msg.userId) === String(userIdCookie.value)) {
+      router.push("/homepage")
+    }
+    // Sinon, le joueur reste dans la partie (un autre joueur a quitté)
   }
 })
 
@@ -64,6 +89,12 @@ const quitLobby = () => {
 const submitWord = async (word: string) => {
   if (!gameId.value || gameStatus.value !== 'IN_PROGRESS') return
   
+  send({
+    type: 'SUBMIT_GUESS',
+    gameId: gameId.value,
+    guess: word,
+    sessionCode
+  })
 }
 
 const goLobby = () => {
@@ -83,8 +114,11 @@ const goToProfile = () => {
 }
 
 const handleKeyPress = (key: string) => {
+  // Bloquer le clavier si le jeu est terminé
+  if (gameStatus.value !== 'IN_PROGRESS') return
+  
   if (key === 'ENTER') {
-    if (currentGuess.value.length === wordLength.value && gameStatus.value === 'IN_PROGRESS') {
+    if (currentGuess.value.length === wordLength.value) {
       submitWord(currentGuess.value)
       currentGuess.value = ''
     }
@@ -171,7 +205,7 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
         </div>
       </div>
     </Modal>
-    <Modal :isOpen="gameStatus === 'WON' || gameStatus === 'LOST'" @close="goLobby">
+    <Modal :isOpen="isResultModalOpen" @close="isResultModalOpen = false">
       <div class="flex flex-col items-center gap-6 py-4">
         <div class="text-6xl leading-none">{{ gameStatus === 'WON' ? '✨' : '💡' }}</div>
         <p class="text-lg text-center text-white/95 m-0">
@@ -190,6 +224,7 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
             <span class="text-sm text-white/70 uppercase tracking-wide">Maximum</span>
           </div>
         </div>
+        <button @click="isResultModalOpen = false" class="bg-indigo-600/80 border border-indigo-600 text-white px-8 py-3 rounded-xl text-base font-semibold cursor-pointer transition-all mt-4 hover:bg-indigo-600 hover:scale-105 hover:shadow-lg">Continuer</button>
       </div>
     </Modal>
   </div>

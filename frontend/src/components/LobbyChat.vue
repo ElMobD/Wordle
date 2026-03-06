@@ -50,7 +50,6 @@ function sendMessage() {
 }
 
 watch(lastMessage, (msg) => {
-  console.log('Nouveau message WebSocket dans lobbyChat:', msg)
   let shouldScroll = false;
   if (msg && msg.type === 'chat') {
     messages.value.push({ user: msg.userName || 'Anonyme', text: msg.message, userId: msg.userId })

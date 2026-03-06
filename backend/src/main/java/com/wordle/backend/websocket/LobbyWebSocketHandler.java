@@ -18,10 +18,12 @@ import com.wordle.backend.service.*;
 import com.wordle.backend.model.User;
 import com.wordle.backend.model.Game;
 import com.wordle.backend.model.Session;
+import com.wordle.backend.model.SessionPlayer;
 import com.wordle.backend.websocket.dto.MessageType;
 import com.wordle.backend.websocket.dto.CreateSessionRequest;
 import com.wordle.backend.websocket.dto.JoinSessionRequest;
 import com.wordle.backend.websocket.dto.ChatMessageRequest;
+import com.wordle.backend.websocket.dto.SubmitGuessRequest;
 import com.wordle.backend.service.WordService;
 import com.wordle.backend.repository.SessionGamePlayerRepository;
 import com.wordle.backend.repository.SessionPlayerRepository;
@@ -86,14 +88,44 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
         try {
             JsonNode root = mapper.readTree(message.getPayload());
             MessageType type = MessageType.valueOf(root.get("type").asText().toUpperCase());
+            
+            // Obtenir le sessionCode si présent et s'assurer que la session est dans la lobby map
+            String sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
+            if (sessionCode != null) {
+                // Re-ajouter à la lobby map en cas de reconnexion
+                Set<WebSocketSession> lobbySessions = lobbies.computeIfAbsent(sessionCode, k -> ConcurrentHashMap.newKeySet());
+                if (!lobbySessions.contains(session)) {
+                    lobbySessions.add(session);
+                    logger.info("Session re-ajoutée au lobby map pour " + sessionCode + " (reconnexion?)");
+                }
+            }
+            
             switch (type) {
                 case CREATE -> {
+                    logger.info("Traitement du message CREATE");
                     CreateSessionRequest req = mapper.treeToValue(root, CreateSessionRequest.class);
+                    logger.info("CreateSessionRequest parsé: rounds=" + req.getRounds() + ", timeLimit=" + req.getTimeLimit() + ", wordLength=" + req.getWordLength());
                     try {
+                        logger.info("Appel de createSession pour user " + user.getName());
                         Session s = lobbyService.createSession(user, req.getRounds(), req.getTimeLimit(), req.getWordLength());
+                        logger.info("Session créée avec code: " + s.getCode());
+                        // Add the creating user as a participant in the session (persist to DB)
+                        Session joined = lobbyService.joinSession(user, s.getCode());
+                        logger.info("Créateur ajouté en tant que participant à la session: " + joined.getCode());
+                        // Add this WebSocket session to the in-memory lobby map
                         addToLobby(s.getCode(), session);
-                        session.sendMessage(new TextMessage(responseFactory.sessionCreated(s)));
+                        logger.info("Session ajoutée au lobby map");
+                        // Reply to the creator with the session info
+                        String response = responseFactory.sessionCreated(s);
+                        logger.info("Réponse créée: " + response);
+                        session.sendMessage(new TextMessage(response));
+                        logger.info("Message envoyé au client");
+                        // Broadcast player_joined so any other connected clients update their player lists
+                        broadcast(s.getCode(), responseFactory.playerJoined(user, s.getCode()));
+                        logger.info("player_joined broadcasted for new session " + s.getCode());
                     } catch (IllegalStateException e) {
+                        logger.severe("IllegalStateException dans CREATE: " + e.getMessage());
+                        e.printStackTrace();
                         String msg = e.getMessage();
                         String code = null;
                         if (msg != null && msg.contains(";code=")) {
@@ -103,7 +135,10 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                             code = parts.length > 1 ? parts[1] : null;
                         }
                         session.sendMessage(new TextMessage(responseFactory.errorWithSessionCode(msg, code)));
-                        
+                    } catch (Exception e) {
+                        logger.severe("Exception inattendue dans CREATE: " + e.getMessage());
+                        e.printStackTrace();
+                        session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la création de la session: " + e.getMessage())));
                     }
                 }
                 case JOIN -> {
@@ -112,30 +147,52 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         Session s = lobbyService.joinSession(user, req.getSessionCode());
                         addToLobby(s.getCode(), session);
                         broadcast(s.getCode(), responseFactory.playerJoined(user, s.getCode()));
+                    } catch (IllegalStateException e) {
+                        String msg = e.getMessage();
+                        String code = null;
+                        if (msg != null && msg.contains(";code=")) {
+                            String[] parts = msg.split(";code=");
+                            msg = parts[0];
+                            code = parts.length > 1 ? parts[1] : null;
+                        }
+                        session.sendMessage(new TextMessage(responseFactory.errorWithSessionCode(msg, code)));
                     } catch (IllegalArgumentException e) {
                         session.sendMessage(new TextMessage(responseFactory.error(e.getMessage())));
                     }
                 }
-                case CHAT -> {                    
+                case CHAT -> {
                     ChatMessageRequest req = mapper.treeToValue(root, ChatMessageRequest.class);
                     logger.info("Received chat message from user " + user.getName() + " in session " + req.getSessionCode() + ": " + req.getMessage());
                     try {
+                        // Fetch session
+                        Session chatSession = lobbyService.getSessionByCode(req.getSessionCode());
+                        if ("FINISHED".equals(chatSession.getStatus()) || "CANCELLED".equals(chatSession.getStatus())) {
+                            throw new IllegalArgumentException("Impossible d'envoyer un message dans une session terminée ou annulée");
+                        }
+                        // Check user is a participant
+                        boolean isParticipant = false;
+                        java.util.List<SessionPlayer> players = lobbyService.getPlayersBySession(chatSession.getId());
+                        for (SessionPlayer sp : players) {
+                            if (sp.getUser().getId().equals(user.getId())) {
+                                isParticipant = true;
+                                break;
+                            }
+                        }
+                        if (!isParticipant) {
+                            throw new IllegalArgumentException("Vous n'êtes pas membre de cette session");
+                        }
                         logger.info("Saving chat message for session " + req.getSessionCode() + " and user " + user.getName());
-                        lobbyService.saveChat(
-                            lobbyService.joinSession(user, req.getSessionCode()),
-                            user,
-                            req.getMessage()
-                        );
+                        lobbyService.saveChat(chatSession, user, req.getMessage());
                         logger.info("Broadcasting chat message to session " + req.getSessionCode() + ": " + req.getMessage());
                         broadcast(req.getSessionCode(), responseFactory.chat(user, req.getMessage()));
                         logger.info("Chat message broadcasted successfully for session " + req.getSessionCode());
                     } catch (Exception e) {
                         logger.severe("Error handling chat message for session " + req.getSessionCode() + ": " + e.getMessage());
                         session.sendMessage(new TextMessage(responseFactory.error("Chat error: " + e.getMessage())));
-                    }    
+                    }
                 }
                 case LOBBYINFOS ->{
-                    String sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
+                    sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
                     //logger.info("Received LOBBYINFOS request for session code: " + sessionCode);
                     if (sessionCode == null) {
                         session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour LOBBYINFO")));
@@ -147,6 +204,19 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         // Récupère les infos du lobby (joueurs, paramètres, etc.)
                         String lobbyInfo = responseFactory.lobbyInfo(s);
                         session.sendMessage(new TextMessage(lobbyInfo));
+                        
+                        // Si une partie est en cours, envoyer le gameId du joueur
+                        if (s.getCurrentRound() > 0) {
+                            try {
+                                java.util.Optional<Game> playerGameOpt = gameService.getGameBySessionAndUser(s.getId(), s.getCurrentRound(), user.getId());
+                                if (playerGameOpt.isPresent()) {
+                                    session.sendMessage(new TextMessage(responseFactory.gameStart(playerGameOpt.get())));
+                                    broadcast(sessionCode, lobbyInfo);
+                                }
+                            } catch (Exception e) {
+                                logger.warning("Impossible de récupérer la game pour userId=" + user.getId() + ": " + e.getMessage());
+                            }
+                        }
                     } catch (Exception e) {
                         //logger.severe("Error retrieving lobby info for session code " + sessionCode + ": " + e.getMessage());
                         e.printStackTrace();
@@ -154,13 +224,25 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                     }
                 }
                 case LEAVE_LOBBY -> {
-                    String sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
+                    sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
                     if (sessionCode == null) {
                         session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour LEAVE_LOBBY")));
                         return;
                     }
                     try {
+                        // Obtenir la session pour récupérer son UUID
+                        Session s = lobbyService.getSessionByCode(sessionCode);
+                        
+                        // Annuler toutes les games du joueur dans cette session
+                        gameService.cancelUserGamesInSession(s.getId(), user.getId());
+                        logger.info("Games annulées pour userId=" + user.getId() + " dans session " + sessionCode);
+                        
                         lobbyService.leaveSession(user, sessionCode);
+                        
+                        // Envoyer une confirmation au client qui quitte
+                        session.sendMessage(new TextMessage(responseFactory.playerLeft(user, sessionCode)));
+                        
+                        // Broadcaster aux autres joueurs
                         broadcast(sessionCode, responseFactory.playerLeft(user, sessionCode));
                         // Optionnel : retirer la session du lobby
                         lobbies.getOrDefault(sessionCode, Set.of()).remove(session);
@@ -173,7 +255,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                     }
                 }
                 case START_GAME -> {
-                    String sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
+                    sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
                     logger.info("START_GAME reçu avec sessionCode=" + sessionCode);
                     if (sessionCode == null) {
                         session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour START_GAME")));
@@ -216,7 +298,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                     }
                 }
                 case LOAD_GAME -> {
-                    String sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
+                    sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
                     logger.info("LOAD_GAME reçu avec sessionCode=" + sessionCode + " from user " + user.getName());
                     if (sessionCode == null) {
                         session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour LOAD_GAME")));
@@ -249,6 +331,46 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         session.sendMessage(new TextMessage(responseFactory.error("Erreur lors du chargement de la partie: " + e.getMessage())));
                     }
                 }
+                case SUBMIT_GUESS -> {
+                    logger.info("SUBMIT_GUESS reçu from user " + user.getName());
+                    try {
+                        SubmitGuessRequest req = mapper.treeToValue(root, SubmitGuessRequest.class);
+                        
+                        if (req.getGameId() == null || req.getGuess() == null) {
+                            session.sendMessage(new TextMessage(responseFactory.error("gameId et guess manquants pour SUBMIT_GUESS")));
+                            return;
+                        }
+                        
+                        // Soumettre la tentative
+                        com.wordle.backend.model.Game game = gameService.submitGuess(req.getGameId(), user.getId(), req.getGuess());
+                        logger.info("Guess soumis pour gameId=" + req.getGameId() + ", word=" + req.getGuess());
+                        
+                        // Récupérer la dernière tentative pour l'inclure dans la réponse
+                        java.util.List<com.wordle.backend.model.Guess> guesses = game.getGuesses();
+                        com.wordle.backend.model.Guess lastGuess = null;
+                        if (guesses != null && !guesses.isEmpty()) {
+                            lastGuess = guesses.get(guesses.size() - 1);
+                        }
+                        
+                        // Envoyer le résultat du guess à ce joueur
+                        if (lastGuess != null) {
+                            session.sendMessage(new TextMessage(responseFactory.submitGuessResponse(game, lastGuess)));
+                        } else {
+                            session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la sauvegarde de la tentative")));
+                        }
+                        
+                        // Broadcaster l'update à tous les joueurs sur eventuellement afficher le résultat
+                        // (optionnel selon si vous voulez afficher en direct ce que font les autres joueurs)
+                        
+                    } catch (IllegalArgumentException e) {
+                        logger.warning("Erreur client SUBMIT_GUESS: " + e.getMessage());
+                        session.sendMessage(new TextMessage(responseFactory.error(e.getMessage())));
+                    } catch (Exception e) {
+                        logger.severe("Erreur lors de la soumission du guess: " + e.getMessage());
+                        e.printStackTrace();
+                        session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la soumission du guess: " + e.getMessage())));
+                    }
+                }
                 case PING -> {
                     // Juste pour tester la connexion, pas besoin de faire quoi que ce soit
                     logger.info("Received ping from user " + user.getName());
@@ -256,7 +378,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                 }
                 case GET_CHAT_HISTORY -> {
                     logger.info("Received GET_CHAT_HISTORY request for session code: " + root.get("sessionCode").asText() + " from user " + user.getName());
-                    String sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
+                    sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
                     if (sessionCode == null) {
                         logger.info("Session code manquant pour GET_CHAT_HISTORY");
                         if (session.isOpen()) {

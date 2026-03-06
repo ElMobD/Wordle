@@ -73,9 +73,12 @@ public class LobbyService {
         Session session = sessionService.getSessionByCode(code)
                 .orElseThrow(() -> new IllegalArgumentException("Session not found"));
 
-        // Vérifier que la session n'est pas terminée ou annulée
+        // Vérifier que la session n'est pas terminée, annulée ou en cours
         if ("FINISHED".equals(session.getStatus()) || "CANCELLED".equals(session.getStatus())) {
             throw new IllegalArgumentException("Impossible de rejoindre une session terminée ou annulée");
+        }
+        if ("IN_PROGRESS".equals(session.getStatus())) {
+            throw new IllegalArgumentException("Impossible de rejoindre une session en cours");
         }
 
         // Vérifier si l'utilisateur est déjà dans une session active (autre que celle-ci)
@@ -121,6 +124,9 @@ public class LobbyService {
         chat.setMessage(message);
         chat.setSentAt(LocalDateTime.now());
         sessionChatService.saveMessage(chat);
+    }
+    public java.util.List<SessionPlayer> getPlayersBySession(java.util.UUID sessionId) {
+        return sessionPlayerService.getPlayersBySession(sessionId);
     }
     public void leaveSession(User user, String sessionCode) {
         Session session = sessionService.getSessionByCode(sessionCode)

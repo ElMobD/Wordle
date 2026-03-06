@@ -10,7 +10,7 @@ import { watch } from 'vue'
 const router = useRouter()
 const route = useRoute()
 const sessionCode = route.params.sessionCode as string
-const { connect, send, isConnected, lastMessage} = useLobbySocket()
+const { connect, disconnect, send, isConnected, lastMessage} = useLobbySocket()
 // --- Retry logic for lobby info request ---
 let lobbyInfoReceived = false;
 let retryCount = 0;
@@ -81,7 +81,7 @@ onMounted(() => {
 })
 
 watch(lastMessage, (msg) => {
-  //console.log('WebSocket message reçu dans Lobby.vue:', msg)
+  console.table(msg)
   if (msg && msg.type === 'lobbyInfo') {
     lobbyInfoReceived = true;
     lobbyInfo.value = msg;
@@ -94,9 +94,7 @@ watch(lastMessage, (msg) => {
     players.value = sortedPlayers;
     nbrPlayers.value = players.value.length;
     isHost.value = String(lobbyInfo.value.hostId) === String(userIdCookie.value);
-    if(msg.status === 'IN_PROGRESS' && msg.currentGameId !== null) {
-      router.push(`/lobby/${sessionCode}/${msg.currentGameId}`)
-    }
+    // Note: Ne pas naviguer automatiquement ici, le message game_start s'en charge
   } else if (msg && msg.type === 'player_left') {
     // Retirer le joueur de la liste
     players.value = players.value.filter(p => String(p.id) !== String(msg.userId));

@@ -69,6 +69,7 @@ const showHelp = () => {
 const rounds = ref(5)
 const timeLimit = ref(60)
 const wordLength = ref(5)
+let isCreatingSession = false  // Flag pour empêcher les envois multiples
 
 const isFormValid = computed(() => {
   return (
@@ -84,9 +85,11 @@ watch(lastMessage, (msg) => {
     if (!msg) return
     if (msg.type === 'session_created') {
       sessionCode.value = msg.sessionCode
+      isCreatingSession = false
       // Redirige vers la vue lobby
       router.push(`/lobby/${msg.sessionCode}`)
     } else if (msg.type === 'error') {
+      isCreatingSession = false
       creationError.value = msg.message
       if (msg.sessionCode) {
         router.push(`/lobby/${msg.sessionCode}`)
@@ -97,7 +100,8 @@ watch(lastMessage, (msg) => {
 })
 
 const createSession = () => {
-  if (!isFormValid.value) return
+  if (!isFormValid.value || isCreatingSession) return
+  isCreatingSession = true
   // TODO: implémenter création de session réelle (WebSocket)
   console.log('Créer une session', { rounds: rounds.value, timeLimit: timeLimit.value, wordLength: wordLength.value })
   creationError.value = null

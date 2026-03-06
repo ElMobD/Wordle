@@ -93,7 +93,7 @@ const loadFriends = async () => {
   loading.value = true
   error.value = null
   try {
-    const response = await authenticatedFetch('http://localhost:8080/api/friends/list')
+    const response = await authenticatedFetch('http://localhost/api/friends/list')
     friends.value = await response.json()
   } catch (err) {
     error.value = 'Erreur lors du chargement des amis'
@@ -107,7 +107,7 @@ const loadPendingRequests = async () => {
   loading.value = true
   error.value = null
   try {
-    const response = await authenticatedFetch('http://localhost:8080/api/friends/requests/pending')
+    const response = await authenticatedFetch('http://localhost/api/friends/requests/pending')
     pendingRequests.value = await response.json()
   } catch (err) {
     error.value = 'Erreur lors du chargement des demandes'
@@ -121,7 +121,7 @@ const loadSentRequests = async () => {
   loading.value = true
   error.value = null
   try {
-    const response = await authenticatedFetch('http://localhost:8080/api/friends/requests/sent')
+    const response = await authenticatedFetch('http://localhost/api/friends/requests/sent')
     sentRequests.value = await response.json()
   } catch (err) {
     error.value = 'Erreur lors du chargement des demandes envoyées'

@@ -185,4 +185,17 @@ public class WebSocketResponseFactory {
         
         return node.toString();
     }
+    
+    public String submitGuessResponse(com.wordle.backend.model.Game game, com.wordle.backend.model.Guess lastGuess) {
+        ObjectNode node = mapper.createObjectNode();
+        node.put("type", "guess_submitted");
+        node.put("gameId", game.getId().toString());
+        node.put("word", lastGuess.getGuess());
+        node.put("resultMask", lastGuess.getResultMask());
+        node.put("attemptsUsed", game.getAttemptsUsed());
+        node.put("maxAttempts", game.getMaxAttempts());
+        node.put("status", game.getStatus().toString());
+        
+        return node.toString();
+    }
 }

@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS games (
     answer          VARCHAR(10) NOT NULL,
     max_attempts    INT NOT NULL DEFAULT 6,
     attempts_used   INT NOT NULL DEFAULT 0,
-    status          VARCHAR(20) NOT NULL DEFAULT 'IN_PROGRESS' CHECK (status IN ('IN_PROGRESS', 'WON', 'LOST')),
+    status          VARCHAR(20) NOT NULL DEFAULT 'IN_PROGRESS' CHECK (status IN ('IN_PROGRESS', 'WON', 'LOST', 'CANCELED')),
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     completed_at    TIMESTAMP
 );

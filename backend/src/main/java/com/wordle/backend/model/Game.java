@@ -193,6 +193,7 @@ public class Game {
     public enum GameStatus {
         IN_PROGRESS,
         WON,
-        LOST
+        LOST,
+        CANCELED
     }
 }
