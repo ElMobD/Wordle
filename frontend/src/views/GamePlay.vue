@@ -22,6 +22,14 @@ const wordLength = ref(5)
 const loading = ref(true)
 const error = ref('')
 const userIdCookie = ref<string | null>(null)
+
+// Settings de la session
+const rounds = ref(1)
+const timeLimit = ref(60)
+const currentRound = ref(1)
+const timeRemaining = ref(60)
+let timerInterval: number | null = null
+
 const { connect, send, isConnected, lastMessage} = useLobbySocket()
 
 onMounted(async () => {
@@ -45,6 +53,16 @@ watch(lastMessage, (msg) => {
     maxGuesses.value = msg.maxAttempts
     wordLength.value = msg.answerLength
     gameStatus.value = msg.status
+    
+    // Extraire les settings de la session
+    if (msg.rounds !== undefined) rounds.value = msg.rounds
+    if (msg.timeLimit !== undefined) timeLimit.value = msg.timeLimit
+    if (msg.currentRound !== undefined) currentRound.value = msg.currentRound
+    if (msg.wordLength !== undefined) wordLength.value = msg.wordLength
+    
+    // Initialiser le timer
+    timeRemaining.value = timeLimit.value
+    startTimer()
     
     if (msg.guesses && Array.isArray(msg.guesses)) {
       guesses.value = msg.guesses.map((g: any) => ({
@@ -82,7 +100,29 @@ watch(lastMessage, (msg) => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handlePhysicalKeyPress)
+  stopTimer()
 })
+
+// Fonctions du timer
+const startTimer = () => {
+  stopTimer() // Arrêter le timer existant s'il y en a un
+  timerInterval = setInterval(() => {
+    if (timeRemaining.value > 0) {
+      timeRemaining.value--
+    } else {
+      stopTimer()
+      // Le temps est écoulé, on pourrait désactiver le clavier ou autre
+    }
+  }, 1000)
+}
+
+const stopTimer = () => {
+  if (timerInterval) {
+    clearInterval(timerInterval)
+    timerInterval = null
+  }
+}
+
 const quitLobby = () => {
   send({ type: 'LEAVE_LOBBY', sessionCode })
 }
@@ -171,6 +211,21 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
         <div v-if="error" class="relative z-10 bg-red-500/20 border border-red-500/60 text-red-300 p-4 text-center rounded-lg mb-4 w-full">{{ error }}</div>
         <div v-if="loading" class="relative z-5 flex items-center justify-center flex-1 text-white w-full">Chargement...</div>
         <template v-else>
+          <!-- Affichage des settings et du timer -->
+          <div class="w-full flex flex-col items-center gap-2 mb-4">
+            <div class="flex gap-6 text-white text-lg font-semibold">
+              <div class="bg-white/10 px-4 py-2 rounded-lg">
+                Round: <span class="text-blue-400">{{ currentRound }}/{{ rounds }}</span>
+              </div>
+              <div class="bg-white/10 px-4 py-2 rounded-lg" :class="{ 'text-red-400': timeRemaining <= 10 }">
+                ⏱️ {{ timeRemaining }}s
+              </div>
+              <div class="bg-white/10 px-4 py-2 rounded-lg">
+                Lettres: <span class="text-green-400">{{ wordLength }}</span>
+              </div>
+            </div>
+          </div>
+          
           <div class="flex-1 min-h-0 w-full flex items-center justify-center">
             <div class="w-full flex justify-center">
               <div class="max-w-[320px] w-full sm:max-w-[360px]">

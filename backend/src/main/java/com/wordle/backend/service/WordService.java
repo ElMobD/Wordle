@@ -40,6 +40,22 @@ public class WordService {
         return randomWords.get(random.nextInt(randomWords.size()));
     }
 
+    public String getRandomWord(int length) {
+        // Filtrer les mots de la longueur spécifiée
+        List<String> wordsOfLength = new ArrayList<>();
+        for (String word : randomWords) {
+            if (word.length() == length) {
+                wordsOfLength.add(word);
+            }
+        }
+        
+        if (wordsOfLength.isEmpty()) {
+            // Si aucun mot de la longueur spécifiée, retourner un mot par défaut
+            return "adieu";
+        }
+        return wordsOfLength.get(random.nextInt(wordsOfLength.size()));
+    }
+
     public boolean isValidWord(String word) {
         if (word == null) {
             return false;

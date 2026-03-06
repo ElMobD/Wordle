@@ -81,6 +81,11 @@ public class GameService {
     public Optional<Game> getGameBySessionAndUser(UUID sessionId, Integer roundNumber, Long userId) {
         return gameRepository.findBySessionIdAndRoundNumberAndUserId(sessionId, roundNumber, userId);
     }
+    
+    // Récupérer la Game avec Session chargée (évite LazyInitializationException)
+    public Optional<Game> getGameBySessionAndUserWithSession(UUID sessionId, Integer roundNumber, Long userId) {
+        return gameRepository.findBySessionIdAndRoundNumberAndUserIdWithSession(sessionId, roundNumber, userId);
+    }
 
 
     public Game submitGuess(UUID gameId, Long userId, String word) {

@@ -156,6 +156,16 @@ public class WebSocketResponseFactory {
         node.put("maxAttempts", game.getMaxAttempts());
         node.put("status", game.getStatus().toString());
         node.put("sessionId", game.getSession().getId().toString());
+        
+        // Ajouter les settings de la session
+        com.wordle.backend.model.Session session = game.getSession();
+        if (session != null) {
+            node.put("rounds", session.getRounds());
+            node.put("timeLimit", session.getTimeLimit());
+            node.put("wordLength", session.getWordLength());
+            node.put("currentRound", session.getCurrentRound());
+        }
+        
         return node.toString();
     }
     
@@ -169,6 +179,15 @@ public class WebSocketResponseFactory {
         node.put("attemptsUsed", game.getAttemptsUsed());
         node.put("status", game.getStatus().toString());
         node.put("sessionId", game.getSession().getId().toString());
+        
+        // Ajouter les settings de la session
+        com.wordle.backend.model.Session session = game.getSession();
+        if (session != null) {
+            node.put("rounds", session.getRounds());
+            node.put("timeLimit", session.getTimeLimit());
+            node.put("wordLength", session.getWordLength());
+            node.put("currentRound", session.getCurrentRound());
+        }
         
         // Ajouter les guesses (historique des tentatives)
         ArrayNode guessesArray = mapper.createArrayNode();

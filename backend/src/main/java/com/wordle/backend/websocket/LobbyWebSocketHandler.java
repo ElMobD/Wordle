@@ -332,7 +332,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         }
                         
                         // Trouver la Game de ce joueur pour ce round
-                        java.util.Optional<Game> optionalGame = gameService.getGameBySessionAndUser(s.getId(), roundNumber, user.getId());
+                        java.util.Optional<Game> optionalGame = gameService.getGameBySessionAndUserWithSession(s.getId(), roundNumber, user.getId());
                         
                         if (optionalGame.isPresent()) {
                             Game playerGame = optionalGame.get();

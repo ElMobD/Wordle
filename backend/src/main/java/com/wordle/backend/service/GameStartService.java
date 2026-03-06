@@ -66,10 +66,10 @@ public class GameStartService {
         List<SessionPlayer> sessionPlayers = sessionPlayerRepository.findBySessionId(s.getId());
         logger.info("Nombre de joueurs: " + sessionPlayers.size());
         
-        // 3. Créer le mot pour ce round (même mot pour tous les joueurs)
+        // 3. Créer le mot pour ce round en respectant le wordLength de la session
         int roundNumber = 1;
-        String answer = wordService.getRandomWord();
-        logger.info("Mot du round " + roundNumber + ": " + answer);
+        String answer = wordService.getRandomWord(s.getWordLength());
+        logger.info("Mot du round " + roundNumber + " (longueur " + s.getWordLength() + "): " + answer);
         
         // 4. Créer une Game par joueur avec le même mot
         List<Game> games = new java.util.ArrayList<>();

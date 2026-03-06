@@ -33,6 +33,10 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
     // Game d'un joueur spécifique dans une session/round
     Optional<Game> findBySessionIdAndRoundNumberAndUserId(UUID sessionId, Integer roundNumber, Long userId);
     
+    // Game d'un joueur avec Session chargée (pour éviter LazyInitializationException)
+    @Query("SELECT g FROM Game g JOIN FETCH g.session WHERE g.session.id = ?1 AND g.roundNumber = ?2 AND g.user.id = ?3")
+    Optional<Game> findBySessionIdAndRoundNumberAndUserIdWithSession(UUID sessionId, Integer roundNumber, Long userId);
+    
     // Toutes les games d'un joueur dans une session
     List<Game> findBySessionIdAndUserId(UUID sessionId, Long userId);
 }
