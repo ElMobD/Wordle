@@ -12,7 +12,6 @@ const route = useRoute()
 const sessionCode = route.params.sessionCode as string
 const gameId = ref(route.params.gameId as string)
 const isHelpModalOpen = ref(false)
-const isResultModalOpen = ref(false)
 const guesses = ref<any[]>([])
 const currentGuess = ref('')
 const gameStatus = ref<'IN_PROGRESS' | 'WON' | 'LOST'>('IN_PROGRESS')
@@ -59,7 +58,6 @@ watch(lastMessage, (msg) => {
       // Nouveau round: reset de l'UI de round
       guesses.value = []
       currentGuess.value = ''
-      isResultModalOpen.value = false
       isAdvancingRound.value = false
       router.replace(`/lobby/${sessionCode}/${msg.gameId}`)
     }
@@ -114,7 +112,7 @@ watch(lastMessage, (msg) => {
     gameStatus.value = msg.status
 
     if (msg.status === 'WON' || msg.status === 'LOST') {
-      isResultModalOpen.value = true
+      stopTimer()
     }
   } else if (msg.type === 'round_finished') {
     if (msg.roundNumber === currentRound.value) {
@@ -131,6 +129,10 @@ watch(lastMessage, (msg) => {
   } else if (msg.type === 'error') {
     isAdvancingRound.value = false
     error.value = msg.message || 'Erreur inconnue'
+    // Auto-effacer après 1 seconde
+    setTimeout(() => {
+      error.value = ''
+    }, 1000)
   } else if (msg.type === 'player_left') {
     // Si le joueur courant quitte, retourner à l'homepage
     if (String(msg.userId) === String(userIdCookie.value)) {
@@ -241,7 +243,7 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
   if (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA') {
     return
   }
-  if (isHelpModalOpen.value || isResultModalOpen.value) {
+  if (isHelpModalOpen.value) {
     return
   }
   const key = event.key.toUpperCase()
@@ -273,9 +275,60 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
       @contact="goToContact"
       @profile="goToProfile"
     />
+    
+    <!-- Message en survol pour la fin de round -->
+    <div v-if="roundFinished" class="fixed top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 sm:left-4 sm:translate-x-0 z-50 pointer-events-none w-full max-w-[90vw] sm:max-w-xs px-4 sm:px-0">
+      <div class="pointer-events-auto bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-white/20 rounded-xl p-3 sm:p-4 shadow-xl backdrop-blur-sm animate-[slideDown_0.3s_ease-out]">
+        <div class="text-center space-y-2">
+          <!-- Message de fin de round -->
+          <div class="text-white text-sm sm:text-base font-bold">
+            <div v-if="roundFinishedReason === 'TIMER'">⏱️ Temps écoulé</div>
+            <div v-else-if="roundFinishedReason === 'ALL_PLAYERS_FINISHED'">✅ Tous les joueurs ont fini</div>
+            <div v-else-if="roundFinishedReason === 'SESSION_FINISHED'">🎉 Partie terminée</div>
+            <div v-else>Round terminé</div>
+          </div>
+          
+          <!-- Bouton pour l'hôte ou message d'attente -->
+          <div v-if="isHost && hasNextRound">
+            <button
+              @click="goNextRound"
+              :disabled="isAdvancingRound"
+              class="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg px-3 sm:px-4 py-2 shadow-lg transition-all text-xs sm:text-sm"
+            >
+              {{ isAdvancingRound ? 'Lancement...' : '▶️ Prochain round' }}
+            </button>
+          </div>
+          <div v-else-if="!isHost && hasNextRound" class="text-white/80 text-xs sm:text-sm">
+            ⏳ En attente de l'hôte...
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Message de victoire/défaite séparé -->
+    <div v-if="(gameStatus === 'WON' || gameStatus === 'LOST') && roundFinished" class="fixed top-1/2 translate-y-16 left-1/2 -translate-x-1/2 sm:left-4 sm:translate-x-0 z-50 pointer-events-none w-full max-w-[90vw] sm:max-w-xs px-4 sm:px-0">
+      <div class="pointer-events-auto rounded-xl p-3 sm:p-4 shadow-xl backdrop-blur-sm border-2" 
+           :class="gameStatus === 'WON' ? 'bg-gradient-to-br from-green-800 to-green-900 border-green-400/40' : 'bg-gradient-to-br from-orange-800 to-orange-900 border-orange-400/40'">
+        <div v-if="gameStatus === 'WON'" class="text-green-300 text-sm sm:text-base font-semibold text-center">
+          ✨ Bravo ! Vous avez trouvé le mot en {{ guesses.length }} essai{{ guesses.length > 1 ? 's' : '' }} !
+        </div>
+        <div v-else-if="gameStatus === 'LOST'" class="text-orange-300 text-sm sm:text-base font-semibold text-center">
+          💡 Dommage ! Vous n'avez pas trouvé le mot.
+        </div>
+      </div>
+    </div>
+    
+    <!-- Message d'erreur en survol -->
+    <Transition name="fade">
+      <div v-if="error" class="fixed top-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+        <div class="pointer-events-auto bg-red-500/90 border-2 border-red-400 text-white px-6 py-4 rounded-xl shadow-2xl backdrop-blur-sm">
+          {{ error }}
+        </div>
+      </div>
+    </Transition>
+    
     <main class="relative z-5 flex flex-1 min-h-0 w-full items-center justify-center p-4">
       <div class="flex flex-col flex-1 min-h-0 w-full max-w-xl h-full gap-4 justify-between items-center">
-        <div v-if="error" class="relative z-10 bg-red-500/20 border border-red-500/60 text-red-300 p-4 text-center rounded-lg mb-4 w-full">{{ error }}</div>
         <div v-if="loading" class="relative z-5 flex items-center justify-center flex-1 text-white w-full">Chargement...</div>
         <template v-else>
           <!-- Affichage des settings et du timer -->
@@ -290,23 +343,6 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
               <div class="bg-white/10 px-4 py-2 rounded-lg">
                 Lettres: <span class="text-green-400">{{ wordLength }}</span>
               </div>
-            </div>
-            <div v-if="roundFinished" class="text-center text-white/90 bg-white/10 px-4 py-2 rounded-lg">
-              <div v-if="roundFinishedReason === 'TIMER'">Round terminé: temps écoulé.</div>
-              <div v-else-if="roundFinishedReason === 'ALL_PLAYERS_FINISHED'">Round terminé: tous les joueurs ont fini.</div>
-              <div v-else-if="roundFinishedReason === 'SESSION_FINISHED'">Partie terminée.</div>
-              <div v-else>Round terminé.</div>
-            </div>
-            <button
-              v-if="isHost && roundFinished && hasNextRound"
-              @click="goNextRound"
-              :disabled="isAdvancingRound"
-              class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-full px-8 py-3 shadow-lg transition-all"
-            >
-              {{ isAdvancingRound ? 'Lancement...' : 'Prochain round' }}
-            </button>
-            <div v-else-if="!isHost && roundFinished && hasNextRound" class="text-white/80 text-sm">
-              En attente de l'hôte pour lancer le prochain round...
             </div>
           </div>
 
@@ -344,27 +380,31 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
         </div>
       </div>
     </Modal>
-    <Modal :isOpen="isResultModalOpen" @close="isResultModalOpen = false">
-      <div class="flex flex-col items-center gap-6 py-4">
-        <div class="text-6xl leading-none">{{ gameStatus === 'WON' ? '✨' : '💡' }}</div>
-        <p class="text-lg text-center text-white/95 m-0">
-          {{ gameStatus === 'WON' 
-            ? `Bravo ! Vous avez trouvé le mot en ${guesses.length} essai${guesses.length > 1 ? 's' : ''} !` 
-            : 'Dommage ! Prochain round ou fin de partie.' 
-          }}
-        </p>
-        <div class="flex gap-8 px-8 py-4 bg-white/5 rounded-xl w-full justify-center">
-          <div class="flex flex-col items-center gap-2">
-            <span class="text-2xl font-bold text-white">{{ guesses.length }}</span>
-            <span class="text-sm text-white/70 uppercase tracking-wide">Essais</span>
-          </div>
-          <div class="flex flex-col items-center gap-2">
-            <span class="text-2xl font-bold text-white">{{ maxGuesses }}</span>
-            <span class="text-sm text-white/70 uppercase tracking-wide">Maximum</span>
-          </div>
-        </div>
-        <button @click="isResultModalOpen = false" class="bg-indigo-600/80 border border-indigo-600 text-white px-8 py-3 rounded-xl text-base font-semibold cursor-pointer transition-all mt-4 hover:bg-indigo-600 hover:scale-105 hover:shadow-lg">Continuer</button>
-      </div>
-    </Modal>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active {
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+.fade-leave-active {
+  transition: opacity 0.7s ease-in, transform 0.7s ease-in;
+}
+
+.fade-enter-from {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-20px);
+}
+
+.fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-20px);
+}
+
+.fade-enter-to,
+.fade-leave-from {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+</style>
