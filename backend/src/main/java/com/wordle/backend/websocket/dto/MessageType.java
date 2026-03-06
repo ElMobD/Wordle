@@ -7,6 +7,7 @@ public enum MessageType {
     LOBBYINFOS,
     LEAVE_LOBBY,
     START_GAME,
+    NEXT_ROUND,
     LOAD_GAME,
     SUBMIT_GUESS,
     PING,

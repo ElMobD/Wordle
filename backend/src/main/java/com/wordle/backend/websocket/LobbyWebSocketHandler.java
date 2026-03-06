@@ -27,6 +27,7 @@ import com.wordle.backend.websocket.dto.SubmitGuessRequest;
 import com.wordle.backend.service.WordService;
 import com.wordle.backend.repository.SessionGamePlayerRepository;
 import com.wordle.backend.repository.SessionPlayerRepository;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -209,7 +210,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         // Si une partie est en cours, envoyer le gameId du joueur
                         if (s.getCurrentRound() > 0) {
                             try {
-                                java.util.Optional<Game> playerGameOpt = gameService.getGameBySessionAndUser(s.getId(), s.getCurrentRound(), user.getId());
+                                java.util.Optional<Game> playerGameOpt = gameService.getGameBySessionAndUserWithSession(s.getId(), s.getCurrentRound(), user.getId());
                                 if (playerGameOpt.isPresent()) {
                                     session.sendMessage(new TextMessage(responseFactory.gameStart(playerGameOpt.get())));
                                     broadcast(sessionCode, lobbyInfo);
@@ -285,33 +286,40 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         Session updatedSession = gameStartService.getSessionByCode(sessionCode);
                         // Broadcast lobbyInfo to all players
                         broadcast(sessionCode, responseFactory.lobbyInfo(updatedSession));
-                        
-                        // Envoyer à chaque joueur SA propre game
-                        Set<WebSocketSession> lobbySessions = lobbies.getOrDefault(sessionCode, Set.of());
-                        for (WebSocketSession ws : lobbySessions) {
-                            if (ws.isOpen()) {
-                                User wsUser = (User) ws.getAttributes().get("user");
-                                if (wsUser != null) {
-                                    // Trouver la game de ce joueur
-                                    Game playerGame = games.stream()
-                                        .filter(g -> g.getUser() != null && g.getUser().getId().equals(wsUser.getId()))
-                                        .findFirst()
-                                        .orElse(null);
-                                    
-                                    if (playerGame != null) {
-                                        ws.sendMessage(new TextMessage(responseFactory.gameStart(playerGame)));
-                                        logger.info("Game envoyée à userId=" + wsUser.getId() + ", gameId=" + playerGame.getId());
-                                    } else {
-                                        logger.warning("Aucune game trouvée pour userId=" + wsUser.getId());
-                                    }
-                                }
-                            }
-                        }
+                        sendGameStartToPlayers(sessionCode, games);
                         logger.info("Broadcasts envoyés pour " + games.size() + " games");
                     } catch (Exception e) {
                         logger.severe("Erreur lors du démarrage de la partie: " + e.getMessage());
                         e.printStackTrace();
                         session.sendMessage(new TextMessage(responseFactory.error("Erreur lors du démarrage de la partie: " + e.getMessage())));
+                    }
+                }
+                case NEXT_ROUND -> {
+                    sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
+                    logger.info("NEXT_ROUND reçu avec sessionCode=" + sessionCode);
+                    if (sessionCode == null) {
+                        session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour NEXT_ROUND")));
+                        return;
+                    }
+                    try {
+                        List<Game> games = gameStartService.startNextRoundTransactional(sessionCode, user);
+                        Session updatedSession = gameStartService.getSessionByCode(sessionCode);
+                        broadcast(sessionCode, responseFactory.lobbyInfo(updatedSession));
+
+                        if (games.isEmpty()) {
+                            broadcast(sessionCode, responseFactory.sessionFinished(sessionCode));
+                            logger.info("Session terminée pour " + sessionCode);
+                        } else {
+                            sendGameStartToPlayers(sessionCode, games);
+                            logger.info("Nouveau round démarré pour " + sessionCode + " avec " + games.size() + " games");
+                        }
+                    } catch (IllegalArgumentException e) {
+                        logger.warning("Erreur NEXT_ROUND: " + e.getMessage());
+                        session.sendMessage(new TextMessage(responseFactory.error(e.getMessage())));
+                    } catch (Exception e) {
+                        logger.severe("Erreur lors du lancement du prochain round: " + e.getMessage());
+                        e.printStackTrace();
+                        session.sendMessage(new TextMessage(responseFactory.error("Erreur lors du lancement du prochain round: " + e.getMessage())));
                     }
                 }
                 case LOAD_GAME -> {
@@ -374,6 +382,33 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                             session.sendMessage(new TextMessage(responseFactory.submitGuessResponse(game, lastGuess)));
                         } else {
                             session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la sauvegarde de la tentative")));
+                        }
+
+                        // Si tous les joueurs ont terminé ce round, notifier tout le lobby
+                        if (req.getSessionCode() != null && !req.getSessionCode().isBlank()) {
+                            try {
+                                Session currentSession = lobbyService.getSessionByCode(req.getSessionCode());
+                                Integer currentRound = currentSession.getCurrentRound();
+                                if (currentRound != null
+                                        && currentRound > 0
+                                        && gameService.areAllPlayersFinished(currentSession.getId(), currentRound)) {
+                                    boolean hasNextRound = currentRound < currentSession.getRounds();
+                                    broadcast(
+                                            req.getSessionCode(),
+                                            responseFactory.roundFinished(req.getSessionCode(), currentRound, "ALL_PLAYERS_FINISHED", hasNextRound)
+                                    );
+
+                                    if (!hasNextRound) {
+                                        currentSession.setStatus("FINISHED");
+                                        currentSession.setUpdatedAt(LocalDateTime.now());
+                                        sessionService.save(currentSession);
+                                        broadcast(req.getSessionCode(), responseFactory.lobbyInfo(currentSession));
+                                        broadcast(req.getSessionCode(), responseFactory.sessionFinished(req.getSessionCode()));
+                                    }
+                                }
+                            } catch (Exception e) {
+                                logger.warning("Impossible de vérifier la fin de round pour session " + req.getSessionCode() + ": " + e.getMessage());
+                            }
                         }
                         
                         // Broadcaster l'update à tous les joueurs sur eventuellement afficher le résultat
@@ -442,6 +477,32 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
 
     private void addToLobby(String code, WebSocketSession session) {
         lobbies.computeIfAbsent(code, k -> ConcurrentHashMap.newKeySet()).add(session);
+    }
+
+    private void sendGameStartToPlayers(String sessionCode, List<Game> games) throws Exception {
+        Set<WebSocketSession> lobbySessions = lobbies.getOrDefault(sessionCode, Set.of());
+        for (WebSocketSession ws : lobbySessions) {
+            if (!ws.isOpen()) {
+                continue;
+            }
+
+            User wsUser = (User) ws.getAttributes().get("user");
+            if (wsUser == null) {
+                continue;
+            }
+
+            Game playerGame = games.stream()
+                    .filter(g -> g.getUser() != null && g.getUser().getId().equals(wsUser.getId()))
+                    .findFirst()
+                    .orElse(null);
+
+            if (playerGame != null) {
+                ws.sendMessage(new TextMessage(responseFactory.gameStart(playerGame)));
+                logger.info("Game envoyée à userId=" + wsUser.getId() + ", gameId=" + playerGame.getId());
+            } else {
+                logger.warning("Aucune game trouvée pour userId=" + wsUser.getId());
+            }
+        }
     }
 
     private void broadcast(String code, String payload) throws Exception {

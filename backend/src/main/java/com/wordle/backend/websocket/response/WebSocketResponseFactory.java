@@ -9,6 +9,8 @@ import com.wordle.backend.repository.SessionPlayerRepository;
 import com.wordle.backend.service.SessionChatService;
 import com.wordle.backend.websocket.LobbyWebSocketHandler;
 import com.wordle.backend.model.SessionChat;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -164,6 +166,8 @@ public class WebSocketResponseFactory {
             node.put("timeLimit", session.getTimeLimit());
             node.put("wordLength", session.getWordLength());
             node.put("currentRound", session.getCurrentRound());
+            node.put("hostId", session.getHost().getId());
+            node.put("remainingTime", computeRemainingTime(game, session.getTimeLimit()));
         }
         
         return node.toString();
@@ -187,6 +191,8 @@ public class WebSocketResponseFactory {
             node.put("timeLimit", session.getTimeLimit());
             node.put("wordLength", session.getWordLength());
             node.put("currentRound", session.getCurrentRound());
+            node.put("hostId", session.getHost().getId());
+            node.put("remainingTime", computeRemainingTime(game, session.getTimeLimit()));
         }
         
         // Ajouter les guesses (historique des tentatives)
@@ -203,6 +209,40 @@ public class WebSocketResponseFactory {
         node.set("guesses", guessesArray);
         
         return node.toString();
+    }
+
+    public String roundFinished(String sessionCode, Integer roundNumber, String reason, boolean hasNextRound) {
+        ObjectNode node = mapper.createObjectNode();
+        node.put("type", "round_finished");
+        node.put("sessionCode", sessionCode);
+        node.put("roundNumber", roundNumber != null ? roundNumber : 0);
+        node.put("reason", reason != null ? reason : "UNKNOWN");
+        node.put("hasNextRound", hasNextRound);
+        return node.toString();
+    }
+
+    public String sessionFinished(String sessionCode) {
+        ObjectNode node = mapper.createObjectNode();
+        node.put("type", "session_finished");
+        node.put("sessionCode", sessionCode);
+        return node.toString();
+    }
+
+    private int computeRemainingTime(com.wordle.backend.model.Game game, int timeLimit) {
+        LocalDateTime startedAt = game.getCreatedAt();
+        if (startedAt == null) {
+            return Math.max(0, timeLimit);
+        }
+
+        long elapsedSeconds = Duration.between(startedAt, LocalDateTime.now()).getSeconds();
+        long remaining = (long) timeLimit - elapsedSeconds;
+        if (remaining < 0) {
+            return 0;
+        }
+        if (remaining > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        return (int) remaining;
     }
     
     public String submitGuessResponse(com.wordle.backend.model.Game game, com.wordle.backend.model.Guess lastGuess) {

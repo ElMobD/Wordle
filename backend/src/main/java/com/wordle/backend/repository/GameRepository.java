@@ -27,6 +27,9 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
     // Parties multi d'une session (par round)
     Optional<Game> findBySessionIdAndRoundNumber(UUID sessionId, Integer roundNumber);
 
+    // Toutes les games d'une session pour un round donne
+    List<Game> findBySessionIdAndRoundNumberOrderByCreatedAtAsc(UUID sessionId, Integer roundNumber);
+
     // Toutes les games d'une session
     List<Game> findBySessionIdOrderByRoundNumber(UUID sessionId);
     
@@ -39,4 +42,7 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
     
     // Toutes les games d'un joueur dans une session
     List<Game> findBySessionIdAndUserId(UUID sessionId, Long userId);
+
+    // Nombre de games encore en cours pour un round
+    long countBySessionIdAndRoundNumberAndStatus(UUID sessionId, Integer roundNumber, Game.GameStatus status);
 }

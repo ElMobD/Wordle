@@ -9,6 +9,8 @@ import com.wordle.backend.repository.SessionGamePlayerRepository;
 import com.wordle.backend.repository.SessionPlayerRepository;
 import com.wordle.backend.repository.GameRepository;
 import com.wordle.backend.websocket.response.WebSocketResponseFactory;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -62,21 +64,60 @@ public class GameStartService {
         s.setUpdatedAt(java.time.LocalDateTime.now());
         sessionService.save(s);
 
-        // 2. Récupérer les joueurs de la session
+        return createRoundGames(s, 1);
+    }
+
+    @Transactional
+    public List<Game> startNextRoundTransactional(String sessionCode, User user) throws Exception {
+        Session s = lobbyService.getSessionByCode(sessionCode);
+        logger.info("NEXT_ROUND demandé pour session " + s.getId() + ", hostId=" + s.getHost().getId() + ", userId=" + user.getId());
+
+        if (!s.getHost().getId().equals(user.getId())) {
+            throw new IllegalArgumentException("Seul l'hôte peut lancer le prochain round.");
+        }
+
+        if (!"IN_PROGRESS".equals(s.getStatus())) {
+            throw new IllegalArgumentException("La session n'est pas en cours.");
+        }
+
+        Integer currentRound = s.getCurrentRound();
+        if (currentRound == null || currentRound <= 0) {
+            throw new IllegalArgumentException("Aucun round actif.");
+        }
+
+        if (!gameService.isRoundFinished(s, currentRound)) {
+            throw new IllegalArgumentException("Le round n'est pas terminé (timer ou joueurs).");
+        }
+
+        if (currentRound >= s.getRounds()) {
+            s.setStatus("FINISHED");
+            s.setUpdatedAt(LocalDateTime.now());
+            sessionService.save(s);
+            logger.info("Session " + s.getCode() + " terminée après le round " + currentRound);
+            return List.of();
+        }
+
+        int nextRound = currentRound + 1;
+        return createRoundGames(s, nextRound);
+    }
+
+    private List<Game> createRoundGames(Session s, int roundNumber) {
+        // 1. Récupérer les joueurs de la session
         List<SessionPlayer> sessionPlayers = sessionPlayerRepository.findBySessionId(s.getId());
         logger.info("Nombre de joueurs: " + sessionPlayers.size());
-        
-        // 3. Créer le mot pour ce round en respectant le wordLength de la session
-        int roundNumber = 1;
+
+        // 2. Créer le mot pour ce round en respectant le wordLength de la session
         String answer = wordService.getRandomWord(s.getWordLength());
+        LocalDateTime roundStartedAt = LocalDateTime.now();
         logger.info("Mot du round " + roundNumber + " (longueur " + s.getWordLength() + "): " + answer);
-        
-        // 4. Créer une Game par joueur avec le même mot
-        List<Game> games = new java.util.ArrayList<>();
+
+        // 3. Créer une Game par joueur avec le même mot
+        List<Game> games = new ArrayList<>();
         for (SessionPlayer sp : sessionPlayers) {
             // Créer la game pour ce joueur
             Game game = gameService.createGameMulti(s.getId(), roundNumber, answer);
             game.setUser(sp.getUser()); // Associer la game au joueur
+            game.setCreatedAt(roundStartedAt); // Même horodatage pour synchroniser le timer de tous les joueurs
             game = gameRepository.save(game); // Sauvegarder la game avec le user
             games.add(game);
             logger.info("Game créée pour userId=" + sp.getUser().getId() + ", gameId=" + game.getId());
@@ -87,9 +128,10 @@ public class GameStartService {
             logger.info("SessionGamePlayer créé pour userId=" + sp.getUser().getId());
         }
 
-        // 5. Mettre à jour le currentRound de la session
+        // 4. Mettre à jour le currentRound de la session
         if (!games.isEmpty()) {
             s.setCurrentRound(roundNumber);
+            s.setUpdatedAt(LocalDateTime.now());
             Session savedSession = sessionService.save(s);
             logger.info("CurrentRound set to: " + savedSession.getCurrentRound());
             

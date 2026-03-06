@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { authenticatedFetch } from '../utils/api'
 import Header from '../components/Header.vue'
 import Modal from '../components/Modal.vue'
 import WordleGrid from '../components/WordleGrid.vue'
@@ -28,7 +27,13 @@ const rounds = ref(1)
 const timeLimit = ref(60)
 const currentRound = ref(1)
 const timeRemaining = ref(60)
+const isHost = ref(false)
+const roundFinished = ref(false)
+const hasNextRound = ref(true)
+const roundFinishedReason = ref('')
+const isAdvancingRound = ref(false)
 let timerInterval: number | null = null
+let timerEndAtMs: number | null = null
 
 const { connect, send, isConnected, lastMessage} = useLobbySocket()
 
@@ -48,32 +53,55 @@ onMounted(async () => {
 watch(lastMessage, (msg) => {
   if (!msg) return
   console.table(msg)
-  if (msg.type === 'load_game') {
+
+  if (msg.type === 'load_game' || msg.type === 'game_start') {
+    if (msg.type === 'game_start') {
+      // Nouveau round: reset de l'UI de round
+      guesses.value = []
+      currentGuess.value = ''
+      isResultModalOpen.value = false
+      isAdvancingRound.value = false
+      router.replace(`/lobby/${sessionCode}/${msg.gameId}`)
+    }
+
     gameId.value = msg.gameId
     maxGuesses.value = msg.maxAttempts
     wordLength.value = msg.answerLength
     gameStatus.value = msg.status
-    
+
     // Extraire les settings de la session
     if (msg.rounds !== undefined) rounds.value = msg.rounds
     if (msg.timeLimit !== undefined) timeLimit.value = msg.timeLimit
     if (msg.currentRound !== undefined) currentRound.value = msg.currentRound
     if (msg.wordLength !== undefined) wordLength.value = msg.wordLength
-    
-    // Initialiser le timer
-    timeRemaining.value = timeLimit.value
+    if (msg.hostId !== undefined) {
+      isHost.value = String(msg.hostId) === String(userIdCookie.value)
+    }
+
+    hasNextRound.value = currentRound.value < rounds.value
+    roundFinished.value = false
+    roundFinishedReason.value = ''
+
+    // Initialiser le timer depuis le serveur pour garder le même chrono pour tous
+    if (msg.remainingTime !== undefined) {
+      timeRemaining.value = Math.max(0, Number(msg.remainingTime))
+    } else {
+      timeRemaining.value = timeLimit.value
+    }
     startTimer()
-    
+
     if (msg.guesses && Array.isArray(msg.guesses)) {
       guesses.value = msg.guesses.map((g: any) => ({
         word: g.guess,
         mask: g.resultMask
       }))
+    } else if (msg.type === 'load_game') {
+      guesses.value = []
     }
-    
+
     loading.value = false
     if (msg.status === 'CANCELED') {
-      router.push("/homepage")
+      router.push('/homepage')
     }
   } else if (msg.type === 'guess_submitted') {
     // Ajouter la nouvelle tentative à la liste
@@ -81,18 +109,32 @@ watch(lastMessage, (msg) => {
       word: msg.word,
       mask: msg.resultMask
     })
-    
+
     // Mettre à jour l'état du jeu
     gameStatus.value = msg.status
-    
-    // Mettre à jour les attempts
+
     if (msg.status === 'WON' || msg.status === 'LOST') {
       isResultModalOpen.value = true
     }
-  }else if (msg.type === 'player_left') {
+  } else if (msg.type === 'round_finished') {
+    if (msg.roundNumber === currentRound.value) {
+      roundFinished.value = true
+      hasNextRound.value = !!msg.hasNextRound
+      roundFinishedReason.value = msg.reason || 'ALL_PLAYERS_FINISHED'
+      stopTimer()
+    }
+  } else if (msg.type === 'session_finished') {
+    roundFinished.value = true
+    hasNextRound.value = false
+    roundFinishedReason.value = 'SESSION_FINISHED'
+    stopTimer()
+  } else if (msg.type === 'error') {
+    isAdvancingRound.value = false
+    error.value = msg.message || 'Erreur inconnue'
+  } else if (msg.type === 'player_left') {
     // Si le joueur courant quitte, retourner à l'homepage
     if (String(msg.userId) === String(userIdCookie.value)) {
-      router.push("/homepage")
+      router.push('/homepage')
     }
     // Sinon, le joueur reste dans la partie (un autre joueur a quitté)
   }
@@ -106,12 +148,30 @@ onUnmounted(() => {
 // Fonctions du timer
 const startTimer = () => {
   stopTimer() // Arrêter le timer existant s'il y en a un
+  if (timeRemaining.value <= 0) {
+    roundFinished.value = true
+    roundFinishedReason.value = 'TIMER'
+    hasNextRound.value = currentRound.value < rounds.value
+    return
+  }
+
+  timerEndAtMs = Date.now() + (timeRemaining.value * 1000)
+
   timerInterval = setInterval(() => {
-    if (timeRemaining.value > 0) {
-      timeRemaining.value--
-    } else {
+    if (timerEndAtMs === null) {
       stopTimer()
-      // Le temps est écoulé, on pourrait désactiver le clavier ou autre
+      return
+    }
+
+    const remaining = Math.ceil((timerEndAtMs - Date.now()) / 1000)
+    if (remaining > 0) {
+      timeRemaining.value = remaining
+    } else {
+      timeRemaining.value = 0
+      roundFinished.value = true
+      roundFinishedReason.value = 'TIMER'
+      hasNextRound.value = currentRound.value < rounds.value
+      stopTimer()
     }
   }, 1000)
 }
@@ -121,14 +181,15 @@ const stopTimer = () => {
     clearInterval(timerInterval)
     timerInterval = null
   }
+  timerEndAtMs = null
 }
 
 const quitLobby = () => {
   send({ type: 'LEAVE_LOBBY', sessionCode })
 }
 const submitWord = async (word: string) => {
-  if (!gameId.value || gameStatus.value !== 'IN_PROGRESS') return
-  
+  if (!gameId.value || gameStatus.value !== 'IN_PROGRESS' || roundFinished.value || timeRemaining.value <= 0) return
+
   send({
     type: 'SUBMIT_GUESS',
     gameId: gameId.value,
@@ -137,9 +198,15 @@ const submitWord = async (word: string) => {
   })
 }
 
-const goLobby = () => {
-  router.push(`/lobby/${sessionCode}`)
+const goNextRound = () => {
+  if (!isHost.value || !roundFinished.value || !hasNextRound.value || isAdvancingRound.value) return
+  isAdvancingRound.value = true
+  send({
+    type: 'NEXT_ROUND',
+    sessionCode
+  })
 }
+
 const goHome = () => {
   router.push('/homepage')
 }
@@ -154,9 +221,9 @@ const goToProfile = () => {
 }
 
 const handleKeyPress = (key: string) => {
-  // Bloquer le clavier si le jeu est terminé
-  if (gameStatus.value !== 'IN_PROGRESS') return
-  
+  // Bloquer le clavier si le round est terminé (timer ou état de game)
+  if (gameStatus.value !== 'IN_PROGRESS' || roundFinished.value || timeRemaining.value <= 0) return
+
   if (key === 'ENTER') {
     if (currentGuess.value.length === wordLength.value) {
       submitWord(currentGuess.value)
@@ -224,8 +291,25 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
                 Lettres: <span class="text-green-400">{{ wordLength }}</span>
               </div>
             </div>
+            <div v-if="roundFinished" class="text-center text-white/90 bg-white/10 px-4 py-2 rounded-lg">
+              <div v-if="roundFinishedReason === 'TIMER'">Round terminé: temps écoulé.</div>
+              <div v-else-if="roundFinishedReason === 'ALL_PLAYERS_FINISHED'">Round terminé: tous les joueurs ont fini.</div>
+              <div v-else-if="roundFinishedReason === 'SESSION_FINISHED'">Partie terminée.</div>
+              <div v-else>Round terminé.</div>
+            </div>
+            <button
+              v-if="isHost && roundFinished && hasNextRound"
+              @click="goNextRound"
+              :disabled="isAdvancingRound"
+              class="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-full px-8 py-3 shadow-lg transition-all"
+            >
+              {{ isAdvancingRound ? 'Lancement...' : 'Prochain round' }}
+            </button>
+            <div v-else-if="!isHost && roundFinished && hasNextRound" class="text-white/80 text-sm">
+              En attente de l'hôte pour lancer le prochain round...
+            </div>
           </div>
-          
+
           <div class="flex-1 min-h-0 w-full flex items-center justify-center">
             <div class="w-full flex justify-center">
               <div class="max-w-[320px] w-full sm:max-w-[360px]">
@@ -235,7 +319,7 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
           </div>
           <div class="w-full flex justify-center">
             <div class="max-w-[340px] w-full sm:max-w-[380px]">
-              <WordleKeyboard :guesses="guesses" @keyPress="handleKeyPress" />
+              <WordleKeyboard :guesses="guesses" :disabled="roundFinished || timeRemaining <= 0 || gameStatus !== 'IN_PROGRESS'" @keyPress="handleKeyPress" />
             </div>
           </div>
           <button @click="quitLobby" class="bg-red-600 hover:bg-red-700 text-white font-bold rounded-full px-8 py-3 shadow-lg transition-all">

@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -85,6 +86,41 @@ public class GameService {
     // Récupérer la Game avec Session chargée (évite LazyInitializationException)
     public Optional<Game> getGameBySessionAndUserWithSession(UUID sessionId, Integer roundNumber, Long userId) {
         return gameRepository.findBySessionIdAndRoundNumberAndUserIdWithSession(sessionId, roundNumber, userId);
+    }
+
+    // Toutes les games d'un round de session
+    public List<Game> getGamesBySessionAndRound(UUID sessionId, Integer roundNumber) {
+        return gameRepository.findBySessionIdAndRoundNumberOrderByCreatedAtAsc(sessionId, roundNumber);
+    }
+
+    // Tous les joueurs ont fini si aucune game n'est encore IN_PROGRESS
+    public boolean areAllPlayersFinished(UUID sessionId, Integer roundNumber) {
+        long inProgressCount = gameRepository.countBySessionIdAndRoundNumberAndStatus(
+                sessionId,
+                roundNumber,
+                Game.GameStatus.IN_PROGRESS
+        );
+        return inProgressCount == 0;
+    }
+
+    // Le timer d'un round est expiré si le temps écoulé depuis la création du round dépasse la limite
+    public boolean isRoundTimerExpired(Session session, Integer roundNumber) {
+        List<Game> roundGames = getGamesBySessionAndRound(session.getId(), roundNumber);
+        if (roundGames.isEmpty()) {
+            return false;
+        }
+
+        LocalDateTime roundStartedAt = roundGames.get(0).getCreatedAt();
+        if (roundStartedAt == null) {
+            return false;
+        }
+
+        long elapsedSeconds = Duration.between(roundStartedAt, LocalDateTime.now()).getSeconds();
+        return elapsedSeconds >= session.getTimeLimit();
+    }
+
+    public boolean isRoundFinished(Session session, Integer roundNumber) {
+        return isRoundTimerExpired(session, roundNumber) || areAllPlayersFinished(session.getId(), roundNumber);
     }
 
 
