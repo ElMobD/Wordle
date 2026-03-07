@@ -97,6 +97,19 @@ CREATE TABLE IF NOT EXISTS session_chat (
     sent_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Table des scores totaux par session (agrégation de tous les rounds)
+CREATE TABLE IF NOT EXISTS session_scores (
+    session_id          UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    user_id             BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    total_score         INT NOT NULL DEFAULT 0,
+    rounds_won          INT NOT NULL DEFAULT 0,
+    rounds_lost         INT NOT NULL DEFAULT 0,
+    average_attempts    DECIMAL(4,2),
+    total_time_remaining INT DEFAULT 0,  -- Somme du temps restant sur tous les rounds gagnés (pour départager les ex aequo)
+    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (session_id, user_id)
+);
+
 -- ============================================================================
 -- SECTION 4 : SYSTÈME SOCIAL (AMIS)
 -- ============================================================================
@@ -146,6 +159,10 @@ CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
 -- Indices sur la table session_chat
 CREATE INDEX IF NOT EXISTS idx_session_chat_session_id ON session_chat(session_id);
 CREATE INDEX IF NOT EXISTS idx_session_chat_sent_at ON session_chat(sent_at);
+
+-- Indices sur la table session_scores
+CREATE INDEX IF NOT EXISTS idx_session_scores_session_id ON session_scores(session_id);
+CREATE INDEX IF NOT EXISTS idx_session_scores_total_score ON session_scores(session_id, total_score DESC);
 
 -- Indices sur les tables de relations sociales
 CREATE INDEX IF NOT EXISTS idx_friend_requests_receiver_id ON friend_requests(receiver_id);

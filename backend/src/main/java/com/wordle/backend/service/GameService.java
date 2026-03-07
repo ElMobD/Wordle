@@ -40,6 +40,12 @@ public class GameService {
     @Autowired
     private WordService wordService;
 
+    @Autowired
+    private ScoreService scoreService;
+
+    @Autowired
+    private com.wordle.backend.repository.SessionGamePlayerRepository sessionGamePlayerRepository;
+
 
     // Création d'une partie solo
     public Game createGameSolo(Long userId, Game.GameType gameType) {
@@ -291,5 +297,66 @@ public class GameService {
         }
 
         return new String(mask);
+    }
+
+    /**
+     * Finalise les scores de tous les joueurs pour un round complété
+     * Appelle ScoreService pour calculer et agréger les points
+     * 
+     * @param sessionId UUID de la session
+     * @param roundNumber Numéro du round qui se termine
+     * @param timeLimit Limite de temps de la session (en secondes)
+     */
+    public void finalizeRoundScores(UUID sessionId, Integer roundNumber, int timeLimit) {
+        // Récupérer toutes les games du round (avec les statuts à jour si timeout)
+        List<Game> roundGames = updateRoundGamesStatusIfTimedOut(sessionId, roundNumber, timeLimit);
+        
+        if (roundGames.isEmpty()) {
+            return;
+        }
+        
+        // Grouper les games par joueur pour traiter chaque joueur
+        java.util.Map<Long, Game> gamesByUserId = new java.util.HashMap<>();
+        for (Game game : roundGames) {
+            if (game.getUser() != null) {
+                gamesByUserId.put(game.getUser().getId(), game);
+            }
+        }
+        
+        // Calculer et stocker le score de chaque joueur
+        for (Game game : roundGames) {
+            if (game.getUser() == null || game.getId() == null) {
+                continue;
+            }
+            
+            Long userId = game.getUser().getId();
+            boolean won = game.getStatus() == Game.GameStatus.WON;
+            int roundScore;
+            int attemptsUsed = game.getAttemptsUsed() != null ? game.getAttemptsUsed() : 0;
+            int timeRemaining = 0;
+            
+            if (won && game.getCompletedAt() != null && game.getCreatedAt() != null) {
+                // Calculer le temps restant pour ce joueur
+                long elapsedSeconds = Duration.between(game.getCreatedAt(), game.getCompletedAt()).getSeconds();
+                timeRemaining = Math.max(0, (int)(timeLimit - elapsedSeconds));
+                roundScore = scoreService.calculateRoundScore(attemptsUsed, timeRemaining);
+            } else {
+                // Si perdu ou timeout, 0 points
+                roundScore = scoreService.calculateRoundScoreLost();
+            }
+            
+            // Mettre à jour le score dans session_game_player
+            var sgp = sessionGamePlayerRepository.findById(
+                new com.wordle.backend.model.SessionGamePlayerId(sessionId, game.getId(), userId)
+            );
+            if (sgp.isPresent()) {
+                sgp.get().setScore(roundScore);
+                sgp.get().setStatus(game.getStatus().toString());
+                sessionGamePlayerRepository.save(sgp.get());
+            }
+            
+            // Agréger dans session_scores via ScoreService
+            scoreService.updatePlayerScore(sessionId, userId, roundScore, attemptsUsed, timeRemaining, won);
+        }
     }
 }

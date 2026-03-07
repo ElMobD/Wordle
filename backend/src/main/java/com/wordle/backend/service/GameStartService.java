@@ -89,6 +89,10 @@ public class GameStartService {
             throw new IllegalArgumentException("Le round n'est pas terminé (timer ou joueurs).");
         }
 
+        // Finaliser les scores du round qui vient de se terminer
+        gameService.finalizeRoundScores(s.getId(), currentRound, s.getTimeLimit());
+        logger.info("Scores finalisés pour le round " + currentRound + " de la session " + s.getCode());
+
         if (currentRound >= s.getRounds()) {
             s.setStatus("FINISHED");
             s.setUpdatedAt(LocalDateTime.now());
