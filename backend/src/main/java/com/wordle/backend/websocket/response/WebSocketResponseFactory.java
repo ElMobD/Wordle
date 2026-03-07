@@ -169,6 +169,7 @@ public class WebSocketResponseFactory {
             node.put("currentRound", session.getCurrentRound());
             node.put("hostId", session.getHost().getId());
             node.put("remainingTime", computeRemainingTime(game, session.getTimeLimit()));
+            node.set("players_status", buildPlayersStatus(session, game.getRoundNumber()));
         }
         
         return node.toString();
@@ -194,6 +195,7 @@ public class WebSocketResponseFactory {
             node.put("currentRound", session.getCurrentRound());
             node.put("hostId", session.getHost().getId());
             node.put("remainingTime", computeRemainingTime(game, session.getTimeLimit()));
+            node.set("players_status", buildPlayersStatus(session, game.getRoundNumber()));
             
             // Vérifier si le round est terminé
             boolean isRoundFinished = gameService.isRoundFinished(session, game.getRoundNumber());
@@ -220,6 +222,38 @@ public class WebSocketResponseFactory {
         node.set("guesses", guessesArray);
         
         return node.toString();
+    }
+
+    private ArrayNode buildPlayersStatus(Session session, Integer roundNumber) {
+        ArrayNode playersStatusArray = mapper.createArrayNode();
+
+        List<SessionPlayer> sessionPlayers = sessionPlayerRepository.findBySessionId(session.getId());
+        List<com.wordle.backend.model.Game> roundGames = new ArrayList<>();
+        if (roundNumber != null) {
+            roundGames = gameService.updateRoundGamesStatusIfTimedOut(session.getId(), roundNumber, session.getTimeLimit());
+        }
+
+        Map<Long, com.wordle.backend.model.Game.GameStatus> statusByUserId = new HashMap<>();
+        for (com.wordle.backend.model.Game roundGame : roundGames) {
+            if (roundGame.getUser() != null) {
+                statusByUserId.put(roundGame.getUser().getId(), roundGame.getStatus());
+            }
+        }
+
+        for (SessionPlayer sessionPlayer : sessionPlayers) {
+            User user = sessionPlayer.getUser();
+            ObjectNode playerNode = mapper.createObjectNode();
+            playerNode.put("id", user.getId());
+            playerNode.put("name", user.getName());
+            playerNode.put("picture", user.getPicture());
+            playerNode.put("isHost", sessionPlayer.isHost());
+
+            com.wordle.backend.model.Game.GameStatus status = statusByUserId.get(user.getId());
+            playerNode.put("status", status != null ? status.toString() : "IN_PROGRESS");
+            playersStatusArray.add(playerNode);
+        }
+
+        return playersStatusArray;
     }
 
     public String roundFinished(String sessionCode, Integer roundNumber, String reason, boolean hasNextRound) {

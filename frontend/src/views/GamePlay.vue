@@ -34,6 +34,21 @@ const isAdvancingRound = ref(false)
 let timerInterval: number | null = null
 let timerEndAtMs: number | null = null
 
+type PlayerStatus = 'IN_PROGRESS' | 'WON' | 'LOST'
+interface PlayerState {
+  id: number
+  name: string
+  picture?: string
+  status: PlayerStatus
+}
+const playersState = ref<PlayerState[]>([])
+
+const statusLabel: Record<PlayerStatus, string> = {
+  IN_PROGRESS: 'En cours',
+  WON: 'Won',
+  LOST: 'Lost'
+}
+
 const { connect, send, isConnected, lastMessage} = useLobbySocket()
 
 onMounted(async () => {
@@ -76,6 +91,15 @@ watch(lastMessage, (msg) => {
       isHost.value = String(msg.hostId) === String(userIdCookie.value)
     }
 
+    if (Array.isArray(msg.players_status)) {
+      playersState.value = msg.players_status.map((p: any) => ({
+        id: Number(p.id),
+        name: p.name,
+        picture: p.picture,
+        status: (p.status as PlayerStatus) || 'IN_PROGRESS'
+      }))
+    }
+
     hasNextRound.value = currentRound.value < rounds.value
     
     // Initialiser le timer depuis le serveur pour garder le même chrono pour tous
@@ -95,13 +119,9 @@ watch(lastMessage, (msg) => {
       roundFinished.value = false
       roundFinishedReason.value = ''
       
-      // Ne démarrer le timer que si le jeu est en cours
-      if (msg.status === 'IN_PROGRESS') {
-        startTimer()
-      } else {
-        // Jeu terminé individuellement (WON/LOST) mais pas le round
-        stopTimer()
-      }
+      // Démarrer/continuer le timer tant que le round n'est pas terminé
+      // même si le joueur a déjà fini individuellement (WON/LOST)
+      startTimer()
     }
 
     if (msg.guesses && Array.isArray(msg.guesses)) {
@@ -127,9 +147,7 @@ watch(lastMessage, (msg) => {
     // Mettre à jour l'état du jeu
     gameStatus.value = msg.status
 
-    if (msg.status === 'WON' || msg.status === 'LOST') {
-      stopTimer()
-    }
+    // Ne pas arrêter le timer ici - il continue jusqu'à la fin du round
   } else if (msg.type === 'round_finished') {
     if (msg.roundNumber === currentRound.value) {
       roundFinished.value = true
@@ -144,6 +162,11 @@ watch(lastMessage, (msg) => {
     stopTimer()
   } else if (msg.type === 'game_status_updated') {
     // Un autre joueur a terminé sa game (WON ou LOST)
+    const player = playersState.value.find(p => String(p.id) === String(msg.userId))
+    if (player && (msg.status === 'WON' || msg.status === 'LOST' || msg.status === 'IN_PROGRESS')) {
+      player.status = msg.status
+    }
+
     // Mettre à jour l'interface si nécessaire, ou afficher une notification
     console.log(`Joueur ${msg.userName} a ${msg.status === 'WON' ? 'gagné' : 'perdu'} en ${msg.attemptsUsed} tentatives`)
   } else if (msg.type === 'error') {
@@ -158,7 +181,7 @@ watch(lastMessage, (msg) => {
     if (String(msg.userId) === String(userIdCookie.value)) {
       router.push('/homepage')
     }
-    // Sinon, le joueur reste dans la partie (un autre joueur a quitté)
+    playersState.value = playersState.value.filter(p => String(p.id) !== String(msg.userId))
   }
 })
 
@@ -357,6 +380,33 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
         </div>
       </div>
     </Transition>
+
+    <div v-if="!loading" class="fixed top-24 right-3 z-30 w-64 hidden lg:block">
+      <div class="rounded-xl border border-white/20 bg-slate-900/60 backdrop-blur-sm p-3">
+        <div class="text-white font-semibold mb-2">Joueurs ({{ playersState.length }})</div>
+        <div class="space-y-2 max-h-[45vh] overflow-y-auto pr-1">
+          <div v-for="player in playersState" :key="player.id" class="flex items-center justify-between gap-2 rounded-lg bg-white/5 px-2 py-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <img v-if="player.picture" :src="player.picture" :alt="player.name" class="w-7 h-7 rounded-full" />
+              <div v-else class="w-7 h-7 rounded-full bg-white/20 text-white text-xs flex items-center justify-center">
+                {{ player.name?.charAt(0)?.toUpperCase() }}
+              </div>
+              <span class="text-sm text-white truncate">{{ player.name }}</span>
+            </div>
+            <span
+              class="text-xs font-semibold px-2 py-1 rounded"
+              :class="{
+                'bg-emerald-500/20 text-emerald-300': player.status === 'WON',
+                'bg-rose-500/20 text-rose-300': player.status === 'LOST',
+                'bg-sky-500/20 text-sky-300': player.status === 'IN_PROGRESS'
+              }"
+            >
+              {{ statusLabel[player.status] }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
     
     <main class="relative z-5 flex flex-1 min-h-0 w-full items-center justify-center p-4">
       <div class="flex flex-col flex-1 min-h-0 w-full max-w-xl h-full gap-4 justify-between items-center">
@@ -368,7 +418,7 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
               <div class="bg-white/10 px-4 py-2 rounded-lg">
                 Round: <span class="text-blue-400">{{ currentRound }}/{{ rounds }}</span>
               </div>
-              <div class="bg-white/10 px-4 py-2 rounded-lg" :class="{ 'text-red-400': timeRemaining <= 10 }">
+              <div v-if="!roundFinished" class="bg-white/10 px-4 py-2 rounded-lg" :class="{ 'text-red-400': timeRemaining <= 10 }">
                 ⏱️ {{ timeRemaining }}s
               </div>
               <div class="bg-white/10 px-4 py-2 rounded-lg">

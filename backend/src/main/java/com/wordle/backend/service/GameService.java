@@ -144,6 +144,26 @@ public class GameService {
         return game;
     }
 
+    // Mettre à jour les statuts timeout de tout un round sans dépendre des proxies Session des games
+    public List<Game> updateRoundGamesStatusIfTimedOut(UUID sessionId, Integer roundNumber, int timeLimit) {
+        List<Game> roundGames = gameRepository.findBySessionIdAndRoundNumberOrderByCreatedAtAsc(sessionId, roundNumber);
+        LocalDateTime now = LocalDateTime.now();
+
+        for (Game game : roundGames) {
+            if (game.getStatus() != Game.GameStatus.IN_PROGRESS || game.getCreatedAt() == null) {
+                continue;
+            }
+
+            long elapsedSeconds = Duration.between(game.getCreatedAt(), now).getSeconds();
+            if (elapsedSeconds >= timeLimit) {
+                game.setStatus(Game.GameStatus.LOST);
+                game.setCompletedAt(now);
+            }
+        }
+
+        return roundGames;
+    }
+
 
     public Game submitGuess(UUID gameId, Long userId, String word) {
         Game game = gameRepository.findById(gameId)
