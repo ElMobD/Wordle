@@ -32,6 +32,7 @@ public class LobbyService {
         this.sessionRepository = sessionRepository;
     }
 
+    @Transactional
     public Session createSession(User user, int rounds, int timeLimit, int wordLength) {
 
         var activeSessionOpt = sessionService.getActiveSessionForUser(user.getId());
@@ -72,6 +73,8 @@ public class LobbyService {
         
         return session;
     }
+    
+    @Transactional
     public Session joinSession(User user, String code) {
         Session session = sessionService.getSessionByCode(code)
                 .orElseThrow(() -> new IllegalArgumentException("Session not found"));
@@ -131,6 +134,8 @@ public class LobbyService {
     public java.util.List<SessionPlayer> getPlayersBySession(java.util.UUID sessionId) {
         return sessionPlayerService.getPlayersBySession(sessionId);
     }
+    
+    @Transactional
     public void leaveSession(User user, String sessionCode) {
         Session session = sessionService.getSessionByCode(sessionCode)
                 .orElseThrow(() -> new IllegalArgumentException("Session not found"));

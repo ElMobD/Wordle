@@ -77,16 +77,32 @@ watch(lastMessage, (msg) => {
     }
 
     hasNextRound.value = currentRound.value < rounds.value
-    roundFinished.value = false
-    roundFinishedReason.value = ''
-
+    
     // Initialiser le timer depuis le serveur pour garder le même chrono pour tous
     if (msg.remainingTime !== undefined) {
       timeRemaining.value = Math.max(0, Number(msg.remainingTime))
     } else {
       timeRemaining.value = timeLimit.value
     }
-    startTimer()
+
+    // Vérifier si le round est déjà terminé selon le serveur
+    if (msg.roundFinished === true) {
+      roundFinished.value = true
+      roundFinishedReason.value = msg.roundFinishedReason || 'TIMER'
+      stopTimer()
+    } else {
+      // Le round n'est pas terminé : réinitialiser et démarrer le timer
+      roundFinished.value = false
+      roundFinishedReason.value = ''
+      
+      // Ne démarrer le timer que si le jeu est en cours
+      if (msg.status === 'IN_PROGRESS') {
+        startTimer()
+      } else {
+        // Jeu terminé individuellement (WON/LOST) mais pas le round
+        stopTimer()
+      }
+    }
 
     if (msg.guesses && Array.isArray(msg.guesses)) {
       guesses.value = msg.guesses.map((g: any) => ({
@@ -160,6 +176,12 @@ const startTimer = () => {
   timerEndAtMs = Date.now() + (timeRemaining.value * 1000)
 
   timerInterval = setInterval(() => {
+    // Si le round est déjà terminé (par le serveur), arrêter le timer
+    if (roundFinished.value) {
+      stopTimer()
+      return
+    }
+    
     if (timerEndAtMs === null) {
       stopTimer()
       return
@@ -169,10 +191,13 @@ const startTimer = () => {
     if (remaining > 0) {
       timeRemaining.value = remaining
     } else {
-      timeRemaining.value = 0
-      roundFinished.value = true
-      roundFinishedReason.value = 'TIMER'
-      hasNextRound.value = currentRound.value < rounds.value
+      // Ne déclencher la fin que si le round n'est pas déjà terminé
+      if (!roundFinished.value) {
+        timeRemaining.value = 0
+        roundFinished.value = true
+        roundFinishedReason.value = 'TIMER'
+        hasNextRound.value = currentRound.value < rounds.value
+      }
       stopTimer()
     }
   }, 1000)
@@ -305,8 +330,8 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
       </div>
     </div>
     
-    <!-- Message de victoire/défaite séparé -->
-    <div v-if="(gameStatus === 'WON' || gameStatus === 'LOST') && roundFinished" class="fixed top-1/2 translate-y-16 left-1/2 -translate-x-1/2 sm:left-4 sm:translate-x-0 z-50 pointer-events-none w-full max-w-[90vw] sm:max-w-xs px-4 sm:px-0">
+    <!-- Message de victoire/défaite personnel (indépendant du round) -->
+    <div v-if="gameStatus === 'WON' || gameStatus === 'LOST'" class="fixed top-1/2 translate-y-16 left-1/2 -translate-x-1/2 sm:left-4 sm:translate-x-0 z-50 pointer-events-none w-full max-w-[90vw] sm:max-w-xs px-4 sm:px-0">
       <div class="pointer-events-auto rounded-xl p-3 sm:p-4 shadow-xl backdrop-blur-sm border-2" 
            :class="gameStatus === 'WON' ? 'bg-gradient-to-br from-green-800 to-green-900 border-green-400/40' : 'bg-gradient-to-br from-orange-800 to-orange-900 border-orange-400/40'">
         <div v-if="gameStatus === 'WON'" class="text-green-300 text-sm sm:text-base font-semibold text-center">

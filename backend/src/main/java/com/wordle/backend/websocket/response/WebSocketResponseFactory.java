@@ -28,6 +28,8 @@ public class WebSocketResponseFactory {
     private SessionPlayerRepository sessionPlayerRepository;
     @Autowired
     private SessionChatService sessionChatService;
+    @Autowired
+    private com.wordle.backend.service.GameService gameService;
     private final ObjectMapper mapper;
     private static final Logger logger = Logger.getLogger(LobbyWebSocketHandler.class.getName());
     public WebSocketResponseFactory(ObjectMapper mapper) {
@@ -193,6 +195,16 @@ public class WebSocketResponseFactory {
             node.put("currentRound", session.getCurrentRound());
             node.put("hostId", session.getHost().getId());
             node.put("remainingTime", computeRemainingTime(game, session.getTimeLimit()));
+            
+            // Vérifier si le round est terminé
+            boolean isRoundFinished = gameService.isRoundFinished(session, game.getRoundNumber());
+            node.put("roundFinished", isRoundFinished);
+            
+            if (isRoundFinished) {
+                // Déterminer la raison
+                boolean timerExpired = gameService.isRoundTimerExpired(session, game.getRoundNumber());
+                node.put("roundFinishedReason", timerExpired ? "TIMER" : "ALL_PLAYERS_FINISHED");
+            }
         }
         
         // Ajouter les guesses (historique des tentatives)
