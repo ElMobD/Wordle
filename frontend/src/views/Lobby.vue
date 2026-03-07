@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import Header from '../components/Header.vue'
 import LobbyChat from '../components/LobbyChat.vue'
@@ -66,53 +66,52 @@ const startGame = () => {
 onMounted(() => {
   userIdCookie.value = document.cookie.split('; ').find(row => row.startsWith('userId='))?.split('=')[1] || null
   if (!isConnected.value) connect(sessionCode)
-  lobbyInfoReceived = false;
-  retryCount = 0;
+
+  lobbyInfoReceived = false
+  retryCount = 0
   if (isConnected.value) {
-    sendLobbyInfoRequest();
+    sendLobbyInfoRequest()
   } else {
     const stop = watch(isConnected, (ok) => {
       if (ok) {
-        sendLobbyInfoRequest();
-        stop();
+        sendLobbyInfoRequest()
+        stop()
       }
-    });
+    })
   }
 })
 
 watch(lastMessage, (msg) => {
   console.table(msg)
   if (msg && msg.type === 'lobbyInfo') {
-    lobbyInfoReceived = true;
-    lobbyInfo.value = msg;
+    lobbyInfoReceived = true
+    lobbyInfo.value = msg
     // Trie pour mettre l'hôte en premier
     const sortedPlayers = [...msg.players].sort((a, b) => {
-      if (a.isHost) return -1;
-      if (b.isHost) return 1;
-      return 0;
-    });
-    players.value = sortedPlayers;
-    nbrPlayers.value = players.value.length;
-    isHost.value = String(lobbyInfo.value.hostId) === String(userIdCookie.value);
+      if (a.isHost) return -1
+      if (b.isHost) return 1
+      return 0
+    })
+    players.value = sortedPlayers
+    nbrPlayers.value = players.value.length
+    isHost.value = String(lobbyInfo.value.hostId) === String(userIdCookie.value)
     // Note: Ne pas naviguer automatiquement ici, le message game_start s'en charge
   } else if (msg && msg.type === 'player_left') {
-    //renvoyer le user vers /multiplayer si le userId correspond à celui qui a quitté (cas où un joueur ouvre plusieurs onglets et quitte le lobby depuis un autre onglet)
+    // Renvoyer le user vers /multiplayer si c'est lui qui a quitté
+    // (cas où un joueur ouvre plusieurs onglets et quitte depuis un autre onglet)
     console.log(String(msg.userId) === String(userIdCookie.value))
     if (String(msg.userId) === String(userIdCookie.value)) {
-      router.push('/multiplayer');
+      router.push('/multiplayer')
     } else {
-      // Un joueur a quitté : redemander les infos complètes pour mettre à jour l'hôte et les joueurs
-      send({ type: "LOBBYINFOS", sessionCode });
+      send({ type: 'LOBBYINFOS', sessionCode })
     }
   } else if (msg && msg.type === 'player_joined') {
-    // Un joueur a rejoint : on redemande la liste complète au backend pour rester synchro
-    send({ type: "LOBBYINFOS", sessionCode });
+    send({ type: 'LOBBYINFOS', sessionCode })
   } else if (msg && msg.type === 'error') {
     if (msg.message === 'Impossible de rejoindre une session terminée ou annulée') {
-      router.push('/multiplayer');
+      router.push('/multiplayer')
     }
   } else if (msg && msg.type === 'game_start') {
-    // Redirige tous les joueurs vers la page de jeu du round
     router.push(`/lobby/${sessionCode}/${msg.gameId}`)
   }
 })

@@ -207,18 +207,11 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         String lobbyInfo = responseFactory.lobbyInfo(s);
                         session.sendMessage(new TextMessage(lobbyInfo));
                         
-                        // Si une partie est en cours, envoyer le gameId du joueur
-                        if (s.getCurrentRound() > 0) {
-                            try {
-                                java.util.Optional<Game> playerGameOpt = gameService.getGameBySessionAndUserWithSession(s.getId(), s.getCurrentRound(), user.getId());
-                                if (playerGameOpt.isPresent()) {
-                                    session.sendMessage(new TextMessage(responseFactory.gameStart(playerGameOpt.get())));
-                                    broadcast(sessionCode, lobbyInfo);
-                                }
-                            } catch (Exception e) {
-                                logger.warning("Impossible de récupérer la game pour userId=" + user.getId() + ": " + e.getMessage());
-                            }
-                        }
+                        // Broadcaster à tous les joueurs du lobby pour synchroniser (nouvel hôte, etc.)
+                        broadcast(sessionCode, lobbyInfo);
+                        
+                        // Note: Ne pas envoyer game_start ici pour éviter de réinitialiser l'UI
+                        // Le game_start est envoyé uniquement lors du démarrage réel d'un round (case START_GAME)
                     } catch (Exception e) {
                         //logger.severe("Error retrieving lobby info for session code " + sessionCode + ": " + e.getMessage());
                         e.printStackTrace();

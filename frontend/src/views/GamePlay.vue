@@ -69,8 +69,9 @@ watch(lastMessage, (msg) => {
   console.table(msg)
 
   if (msg.type === 'load_game' || msg.type === 'game_start') {
-    if (msg.type === 'game_start') {
-      // Nouveau round: reset de l'UI de round
+    const isNewGameStart = msg.type === 'game_start' && String(msg.gameId) !== String(gameId.value)
+    if (isNewGameStart) {
+      // Nouveau round (nouvelle game): reset de l'UI de round
       guesses.value = []
       currentGuess.value = ''
       isAdvancingRound.value = false
@@ -182,6 +183,11 @@ watch(lastMessage, (msg) => {
       router.push('/homepage')
     }
     playersState.value = playersState.value.filter(p => String(p.id) !== String(msg.userId))
+  } else if (msg.type === 'lobbyInfo') {
+    // Mettre à jour le statut d'hôte quand il y a un changement dans le lobby
+    if (msg.hostId !== undefined) {
+      isHost.value = String(msg.hostId) === String(userIdCookie.value)
+    }
   }
 })
 
