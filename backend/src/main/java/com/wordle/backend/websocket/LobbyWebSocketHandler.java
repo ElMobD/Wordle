@@ -344,6 +344,8 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         
                         if (optionalGame.isPresent()) {
                             Game playerGame = optionalGame.get();
+                            // Vérifier si la game a timeout et mettre à jour le statut si nécessaire
+                            playerGame = gameService.updateGameStatusIfTimedOut(playerGame);
                             session.sendMessage(new TextMessage(responseFactory.loadGame(playerGame)));
                             logger.info("Game chargée pour userId=" + user.getId() + ", gameId=" + playerGame.getId());
                         } else {
@@ -384,6 +386,17 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                             session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la sauvegarde de la tentative")));
                         }
 
+                        // Si la game est maintenant WON ou LOST, broadcaster le changement de statut à tous les joueurs
+                        if ((game.getStatus() == com.wordle.backend.model.Game.GameStatus.WON || 
+                             game.getStatus() == com.wordle.backend.model.Game.GameStatus.LOST) &&
+                            req.getSessionCode() != null && !req.getSessionCode().isBlank()) {
+                            // Broadcaster la mise à jour du statut du game
+                            broadcast(
+                                req.getSessionCode(),
+                                responseFactory.gameStatusUpdated(game, user)
+                            );
+                        }
+
                         // Si tous les joueurs ont terminé ce round, notifier tout le lobby
                         if (req.getSessionCode() != null && !req.getSessionCode().isBlank()) {
                             try {
@@ -392,6 +405,13 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                                 if (currentRound != null
                                         && currentRound > 0
                                         && gameService.areAllPlayersFinished(currentSession.getId(), currentRound)) {
+                                    
+                                    // Mettre à jour les statuts des games en timeout
+                                    java.util.List<com.wordle.backend.model.Game> roundGames = gameService.getGamesBySessionAndRound(currentSession.getId(), currentRound);
+                                    for (com.wordle.backend.model.Game g : roundGames) {
+                                        gameService.updateGameStatusIfTimedOut(g);
+                                    }
+                                    
                                     boolean hasNextRound = currentRound < currentSession.getRounds();
                                     broadcast(
                                             req.getSessionCode(),

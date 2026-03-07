@@ -123,6 +123,27 @@ public class GameService {
         return isRoundTimerExpired(session, roundNumber) || areAllPlayersFinished(session.getId(), roundNumber);
     }
 
+    // Vérifier si une game a dépassé le timeLimit de sa session
+    private boolean hasGameTimedOut(Game game) {
+        if (game.getSession() == null || game.getCreatedAt() == null) {
+            return false;
+        }
+        
+        int timeLimit = game.getSession().getTimeLimit();
+        long elapsedSeconds = Duration.between(game.getCreatedAt(), LocalDateTime.now()).getSeconds();
+        return elapsedSeconds >= timeLimit;
+    }
+
+    // Mettre à jour le statut d'une game si le timeout a expiré
+    public Game updateGameStatusIfTimedOut(Game game) {
+        if (game.getStatus() == Game.GameStatus.IN_PROGRESS && hasGameTimedOut(game)) {
+            game.setStatus(Game.GameStatus.LOST);
+            game.setCompletedAt(LocalDateTime.now());
+            gameRepository.save(game);
+        }
+        return game;
+    }
+
 
     public Game submitGuess(UUID gameId, Long userId, String word) {
         Game game = gameRepository.findById(gameId)
@@ -142,6 +163,14 @@ public class GameService {
                 throw new IllegalArgumentException("Session manquante pour une partie multi");
             }
             // TODO : vérifier l'appartenance à la session (à faire dans SessionService ou ici)
+        }
+
+        // Vérifier si le temps a expiré et marquer comme LOST si nécessaire
+        if (game.getStatus() == Game.GameStatus.IN_PROGRESS && hasGameTimedOut(game)) {
+            game.setStatus(Game.GameStatus.LOST);
+            game.setCompletedAt(LocalDateTime.now());
+            gameRepository.save(game);
+            throw new IllegalArgumentException("Temps écoulé, partie terminée");
         }
 
         if (game.getStatus() != Game.GameStatus.IN_PROGRESS) {

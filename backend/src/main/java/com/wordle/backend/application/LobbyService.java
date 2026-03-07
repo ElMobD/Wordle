@@ -79,28 +79,32 @@ public class LobbyService {
         Session session = sessionService.getSessionByCode(code)
                 .orElseThrow(() -> new IllegalArgumentException("Session not found"));
 
-        // Vérifier que la session n'est pas terminée, annulée ou en cours
+        // Vérifier que la session n'est pas terminée ou annulée
         if ("FINISHED".equals(session.getStatus()) || "CANCELLED".equals(session.getStatus())) {
             throw new IllegalArgumentException("Impossible de rejoindre une session terminée ou annulée");
         }
-        if ("IN_PROGRESS".equals(session.getStatus())) {
+
+        // Récupérer les sessions du joueur pour vérifier son appartenance
+        java.util.List<SessionPlayer> userSessions = sessionPlayerService.getSessionsByUser(user.getId());
+
+        // Vérifier si l'utilisateur est déjà dans cette session (cas reconnexion)
+        SessionPlayer existing = userSessions.stream()
+                .filter(sp -> sp.getSession() != null && sp.getSession().getId().equals(session.getId()))
+                .findFirst()
+                .orElse(null);
+
+        // Si la session est en cours, seuls les joueurs déjà membres peuvent se reconnecter
+        if ("IN_PROGRESS".equals(session.getStatus()) && existing == null) {
             throw new IllegalArgumentException("Impossible de rejoindre une session en cours");
         }
 
         // Vérifier si l'utilisateur est déjà dans une session active (autre que celle-ci)
-        java.util.List<SessionPlayer> userSessions = sessionPlayerService.getSessionsByUser(user.getId());
         for (SessionPlayer sp : userSessions) {
             Session s = sp.getSession();
             if (s != null && !s.getId().equals(session.getId()) && !"FINISHED".equals(s.getStatus()) && !"CANCELLED".equals(s.getStatus())) {
                 throw new IllegalStateException("User already in another active session;code=" + s.getCode());
             }
         }
-
-        // Vérifier si l'utilisateur est déjà dans cette session
-        SessionPlayer existing = userSessions.stream()
-                .filter(sp -> sp.getSession() != null && sp.getSession().getId().equals(session.getId()))
-                .findFirst()
-                .orElse(null);
 
         boolean isHost = session.getHost().getId().equals(user.getId());
 

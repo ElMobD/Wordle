@@ -269,4 +269,17 @@ public class WebSocketResponseFactory {
         
         return node.toString();
     }
+
+    public String gameStatusUpdated(com.wordle.backend.model.Game game, User user) {
+        ObjectNode node = mapper.createObjectNode();
+        node.put("type", "game_status_updated");
+        node.put("gameId", game.getId().toString());
+        node.put("userId", user.getId());
+        node.put("userName", user.getName());
+        node.put("status", game.getStatus().toString());
+        node.put("roundNumber", game.getRoundNumber());
+        node.put("attemptsUsed", game.getAttemptsUsed());
+        
+        return node.toString();
+    }
 }

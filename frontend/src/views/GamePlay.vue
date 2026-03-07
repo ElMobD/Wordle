@@ -142,6 +142,10 @@ watch(lastMessage, (msg) => {
     hasNextRound.value = false
     roundFinishedReason.value = 'SESSION_FINISHED'
     stopTimer()
+  } else if (msg.type === 'game_status_updated') {
+    // Un autre joueur a terminé sa game (WON ou LOST)
+    // Mettre à jour l'interface si nécessaire, ou afficher une notification
+    console.log(`Joueur ${msg.userName} a ${msg.status === 'WON' ? 'gagné' : 'perdu'} en ${msg.attemptsUsed} tentatives`)
   } else if (msg.type === 'error') {
     isAdvancingRound.value = false
     error.value = msg.message || 'Erreur inconnue'
@@ -197,6 +201,8 @@ const startTimer = () => {
         roundFinished.value = true
         roundFinishedReason.value = 'TIMER'
         hasNextRound.value = currentRound.value < rounds.value
+        // Charger l'état du game depuis le serveur pour vérifier/mettre à jour le statut
+        send({ type: 'LOAD_GAME', sessionCode })
       }
       stopTimer()
     }
