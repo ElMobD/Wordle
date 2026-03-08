@@ -410,9 +410,14 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                                     logger.info("Scores finalisés automatiquement pour le round " + currentRound + " de la session " + currentSession.getCode());
                                     
                                     boolean hasNextRound = currentRound < currentSession.getRounds();
+                                    // Récupérer la réponse correcte du round
+                                    String answer = "";
+                                    if (!roundGames.isEmpty()) {
+                                        answer = roundGames.get(0).getAnswer();
+                                    }
                                     broadcast(
                                             req.getSessionCode(),
-                                            responseFactory.roundFinished(req.getSessionCode(), currentRound, "ALL_PLAYERS_FINISHED", hasNextRound)
+                                            responseFactory.roundFinished(req.getSessionCode(), currentRound, "ALL_PLAYERS_FINISHED", hasNextRound, answer)
                                     );
 
                                     if (!hasNextRound) {

@@ -30,6 +30,7 @@ const isHost = ref(false)
 const roundFinished = ref(false)
 const hasNextRound = ref(true)
 const roundFinishedReason = ref('')
+const correctAnswer = ref('')
 const isAdvancingRound = ref(false)
 let timerInterval: number | null = null
 let timerEndAtMs: number | null = null
@@ -74,6 +75,7 @@ watch(lastMessage, (msg) => {
       // Nouveau round (nouvelle game): reset de l'UI de round
       guesses.value = []
       currentGuess.value = ''
+      correctAnswer.value = ''
       isAdvancingRound.value = false
       router.replace(`/lobby/${sessionCode}/${msg.gameId}`)
     }
@@ -119,6 +121,7 @@ watch(lastMessage, (msg) => {
       // Le round n'est pas terminé : réinitialiser et démarrer le timer
       roundFinished.value = false
       roundFinishedReason.value = ''
+      correctAnswer.value = ''
       
       // Démarrer/continuer le timer tant que le round n'est pas terminé
       // même si le joueur a déjà fini individuellement (WON/LOST)
@@ -154,6 +157,7 @@ watch(lastMessage, (msg) => {
       roundFinished.value = true
       hasNextRound.value = !!msg.hasNextRound
       roundFinishedReason.value = msg.reason || 'ALL_PLAYERS_FINISHED'
+      correctAnswer.value = msg.answer || ''
       stopTimer()
     }
   } else if (msg.type === 'session_finished') {
@@ -345,7 +349,7 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
     />
     
     <!-- Message en survol pour la fin de round -->
-    <div v-if="roundFinished" class="fixed top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 sm:left-4 sm:translate-x-0 z-50 pointer-events-none w-full max-w-[90vw] sm:max-w-xs px-4 sm:px-0">
+    <div v-if="roundFinished" class="fixed top-1/3 -translate-y-1/2 left-1/2 -translate-x-1/2 sm:left-4 sm:translate-x-0 z-50 pointer-events-none w-full max-w-[90vw] sm:max-w-xs px-4 sm:px-0">
       <div class="pointer-events-auto bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-white/20 rounded-xl p-3 sm:p-4 shadow-xl backdrop-blur-sm animate-[slideDown_0.3s_ease-out]">
         <div class="text-center space-y-2">
           <!-- Message de fin de round -->
@@ -356,6 +360,12 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
             <div v-else-if="roundFinishedReason === 'ALL_PLAYERS_FINISHED' && !hasNextRound">🎉 Partie terminée</div>
             <div v-else-if="roundFinishedReason === 'SESSION_FINISHED'">🎉 Partie terminée</div>
             <div v-else>Round terminé</div>
+          </div>
+          
+          <!-- Affichage du mot correct -->
+          <div v-if="correctAnswer" class="text-center pt-2 border-t border-white/20">
+            <div class="text-white/70 text-xs">La bonne réponse:</div>
+            <div class="text-yellow-300 text-lg sm:text-xl font-bold tracking-widest">{{ correctAnswer.toUpperCase() }}</div>
           </div>
           
           <!-- Bouton pour l'hôte ou message d'attente -->

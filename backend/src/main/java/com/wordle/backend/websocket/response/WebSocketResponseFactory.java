@@ -256,13 +256,14 @@ public class WebSocketResponseFactory {
         return playersStatusArray;
     }
 
-    public String roundFinished(String sessionCode, Integer roundNumber, String reason, boolean hasNextRound) {
+    public String roundFinished(String sessionCode, Integer roundNumber, String reason, boolean hasNextRound, String answer) {
         ObjectNode node = mapper.createObjectNode();
         node.put("type", "round_finished");
         node.put("sessionCode", sessionCode);
         node.put("roundNumber", roundNumber != null ? roundNumber : 0);
         node.put("reason", reason != null ? reason : "UNKNOWN");
         node.put("hasNextRound", hasNextRound);
+        node.put("answer", answer != null ? answer : "");
         return node.toString();
     }
 
