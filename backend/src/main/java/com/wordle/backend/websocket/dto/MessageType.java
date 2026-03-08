@@ -11,5 +11,6 @@ public enum MessageType {
     LOAD_GAME,
     SUBMIT_GUESS,
     PING,
-    GET_CHAT_HISTORY
+    GET_CHAT_HISTORY,
+    SHOW_LEADERBOARD
 }

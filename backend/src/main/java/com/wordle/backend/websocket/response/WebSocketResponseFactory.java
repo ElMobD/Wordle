@@ -273,6 +273,13 @@ public class WebSocketResponseFactory {
         return node.toString();
     }
 
+    public String showLeaderboard(String sessionCode) {
+        ObjectNode node = mapper.createObjectNode();
+        node.put("type", "show_leaderboard");
+        node.put("sessionCode", sessionCode);
+        return node.toString();
+    }
+
     private int computeRemainingTime(com.wordle.backend.model.Game game, int timeLimit) {
         LocalDateTime startedAt = game.getCreatedAt();
         if (startedAt == null) {

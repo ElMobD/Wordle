@@ -3,10 +3,13 @@ package com.wordle.backend.controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import com.wordle.backend.service.SessionService;
+import com.wordle.backend.model.PlayerScore;
 import java.util.Map;
+import java.util.List;
 import com.wordle.backend.repository.UserRepository;
 
 @RestController
@@ -37,6 +40,13 @@ public class SessionController {
             return Map.of();
         }
     }
+
+    @GetMapping("/{sessionCode}/leaderboard")
+    public List<PlayerScore> getLeaderboard(@PathVariable String sessionCode) {
+        System.out.println("Requête GET /api/session/" + sessionCode + "/leaderboard reçue");
+        return sessionService.getLeaderboard(sessionCode);
+    }
+
     private Long getUserId(Authentication authentication) {
         if (authentication == null || authentication.getPrincipal() == null) {
             return null;

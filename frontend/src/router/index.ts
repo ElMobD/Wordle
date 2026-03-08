@@ -52,6 +52,11 @@ const routes = [
         path: ':gameId',
         component: () => import('../views/GamePlay.vue'),
         meta: { requiresAuth: true }
+      },
+      {
+        path: 'leaderboard',
+        component: () => import('../views/Leaderboard.vue'),
+        meta: { requiresAuth: true }
       }
     ]
   },

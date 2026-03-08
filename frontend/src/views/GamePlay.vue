@@ -269,6 +269,14 @@ const goNextRound = () => {
   })
 }
 
+const showLeaderboard = () => {
+  if (!isHost.value || !roundFinished.value || hasNextRound.value) return
+  send({
+    type: 'SHOW_LEADERBOARD',
+    sessionCode
+  })
+}
+
 const goHome = () => {
   router.push('/homepage')
 }
@@ -342,8 +350,10 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
         <div class="text-center space-y-2">
           <!-- Message de fin de round -->
           <div class="text-white text-sm sm:text-base font-bold">
-            <div v-if="roundFinishedReason === 'TIMER'">⏱️ Temps écoulé</div>
-            <div v-else-if="roundFinishedReason === 'ALL_PLAYERS_FINISHED'">✅ Tous les joueurs ont fini</div>
+            <div v-if="roundFinishedReason === 'TIMER' && hasNextRound">⏱️ Temps écoulé</div>
+            <div v-else-if="roundFinishedReason === 'TIMER' && !hasNextRound">🎉 Partie terminée</div>
+            <div v-else-if="roundFinishedReason === 'ALL_PLAYERS_FINISHED' && hasNextRound">✅ Tous les joueurs ont fini</div>
+            <div v-else-if="roundFinishedReason === 'ALL_PLAYERS_FINISHED' && !hasNextRound">🎉 Partie terminée</div>
             <div v-else-if="roundFinishedReason === 'SESSION_FINISHED'">🎉 Partie terminée</div>
             <div v-else>Round terminé</div>
           </div>
@@ -358,8 +368,19 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
               {{ isAdvancingRound ? 'Lancement...' : '▶️ Prochain round' }}
             </button>
           </div>
+          <div v-if="isHost && !hasNextRound">
+            <button
+              @click="showLeaderboard"
+              class="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-bold rounded-lg px-3 sm:px-4 py-2 shadow-lg transition-all text-xs sm:text-sm"
+            >
+              🏆 Voir le classement
+            </button>
+          </div>
           <div v-else-if="!isHost && hasNextRound" class="text-white/80 text-xs sm:text-sm">
             ⏳ En attente de l'hôte...
+          </div>
+          <div v-else-if="!isHost && !hasNextRound" class="text-white/80 text-xs sm:text-sm">
+            ⏳ En attente du classement
           </div>
         </div>
       </div>

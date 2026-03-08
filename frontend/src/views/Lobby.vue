@@ -48,8 +48,9 @@ const loadGameRequested = ref(false)
 function requestCurrentGameIfNeeded() {
   const currentRound = Number(lobbyInfo.value?.currentRound ?? 0)
   const hasGameInRoute = Boolean(route.params.gameId)
+  const isOnLeaderboard = route.path.includes('/leaderboard')
 
-  if (!hasGameInRoute && currentRound > 0 && isConnected.value && !loadGameRequested.value) {
+  if (!hasGameInRoute && !isOnLeaderboard && currentRound > 0 && isConnected.value && !loadGameRequested.value) {
     loadGameRequested.value = true
     send({ type: 'LOAD_GAME', sessionCode })
   }
@@ -78,17 +79,22 @@ onMounted(() => {
   userIdCookie.value = document.cookie.split('; ').find(row => row.startsWith('userId='))?.split('=')[1] || null
   if (!isConnected.value) connect(sessionCode)
 
-  lobbyInfoReceived = false
-  retryCount = 0
-  if (isConnected.value) {
-    sendLobbyInfoRequest()
-  } else {
-    const stop = watch(isConnected, (ok) => {
-      if (ok) {
-        sendLobbyInfoRequest()
-        stop()
-      }
-    })
+  // Ne demander LOBBYINFOS que si on n'est pas sur le leaderboard
+  // (car une session FINISHED causera une erreur)
+  const isOnLeaderboard = route.path.includes('/leaderboard')
+  if (!isOnLeaderboard) {
+    lobbyInfoReceived = false
+    retryCount = 0
+    if (isConnected.value) {
+      sendLobbyInfoRequest()
+    } else {
+      const stop = watch(isConnected, (ok) => {
+        if (ok) {
+          sendLobbyInfoRequest()
+          stop()
+        }
+      })
+    }
   }
 })
 
@@ -132,11 +138,17 @@ watch(lastMessage, (msg) => {
       return
     }
     if (msg.message === 'Impossible de rejoindre une session terminée ou annulée') {
+      // Si on est sur le leaderboard, ne pas rediriger
+      if (route.path.includes('/leaderboard')) {
+        return
+      }
       router.push('/multiplayer')
     }
   } else if (msg && msg.type === 'game_start') {
     loadGameRequested.value = false
     router.push(`/lobby/${sessionCode}/${msg.gameId}`)
+  } else if (msg && msg.type === 'show_leaderboard') {
+    router.push(`/lobby/${sessionCode}/leaderboard`)
   }
 })
 // Copie du code de session
@@ -155,7 +167,7 @@ const quitLobby = () => {
 
 
 <template>
-  <div v-if="!$route.params.gameId" class="relative flex flex-col min-h-screen w-full">
+  <div v-if="!$route.params.gameId && !$route.path.includes('/leaderboard')" class="relative flex flex-col min-h-screen w-full">
     <Header 
       title="LOBBY"
       @home="goHome"

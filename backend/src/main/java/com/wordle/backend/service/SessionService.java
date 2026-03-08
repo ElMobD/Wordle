@@ -6,13 +6,35 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.wordle.backend.repository.SessionPlayerRepository;
+import com.wordle.backend.repository.SessionGamePlayerRepository;
+import com.wordle.backend.repository.GuessRepository;
+import com.wordle.backend.repository.UserRepository;
+import com.wordle.backend.model.PlayerScore;
+import com.wordle.backend.model.SessionGamePlayer;
+import com.wordle.backend.model.User;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 @Service
 public class SessionService {
     @Autowired
     private SessionPlayerRepository sessionPlayerRepository;
+
+    @Autowired
+    private SessionRepository sessionRepository;
+
+    @Autowired
+    private SessionGamePlayerRepository sessionGamePlayerRepository;
+
+    @Autowired
+    private GuessRepository guessRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     public String getSessionCodeForUserId(Long userId) {
         if (userId == null) return null;
@@ -30,9 +52,6 @@ public class SessionService {
         System.out.println("Aucune session active trouvée pour userId=" + userId);
         return null;
     }
-    // Supprime l'ancienne version, ne garder que celle qui regarde session_players
-    @Autowired
-    private SessionRepository sessionRepository;
 
     public Session createSession(Session session) {
         session.setId(UUID.randomUUID());
@@ -144,5 +163,82 @@ public class SessionService {
             
             return false;
         }
+    }
+
+    /**
+     * Calcule le leaderboard pour une session donnée
+     */
+    public List<PlayerScore> getLeaderboard(String sessionCode) {
+        Optional<Session> sessionOpt = sessionRepository.findByCode(sessionCode);
+        if (sessionOpt.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        UUID sessionId = sessionOpt.get().getId();
+        
+        // Récupérer tous les SessionGamePlayer pour cette session
+        List<SessionGamePlayer> sgpList = sessionGamePlayerRepository.findByIdSessionId(sessionId);
+        
+        // Grouper par userId
+        Map<Long, List<SessionGamePlayer>> playerGames = sgpList.stream()
+                .collect(Collectors.groupingBy(sgp -> sgp.getId().getUserId()));
+        
+        // Calculer les stats pour chaque joueur
+        List<PlayerScore> leaderboard = new ArrayList<>();
+        for (Map.Entry<Long, List<SessionGamePlayer>> entry : playerGames.entrySet()) {
+            Long userId = entry.getKey();
+            List<SessionGamePlayer> games = entry.getValue();
+            
+            // Récupérer les informations de l'utilisateur
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isEmpty()) {
+                continue;
+            }
+            User user = userOpt.get();
+            
+            // Calculer les stats
+            int totalScore = games.stream()
+                    .mapToInt(sgp -> sgp.getScore() != null ? sgp.getScore() : 0)
+                    .sum();
+            
+            int wins = (int) games.stream()
+                    .filter(sgp -> "WON".equals(sgp.getStatus()))
+                    .count();
+            
+            int losses = (int) games.stream()
+                    .filter(sgp -> "LOST".equals(sgp.getStatus()))
+                    .count();
+            
+            // Calculer la moyenne des tentatives
+            double averageAttempts = 0.0;
+            int gamesWithGuesses = 0;
+            for (SessionGamePlayer sgp : games) {
+                int guessCount = guessRepository.findByGameIdAndUserIdOrderByAttemptNo(
+                        sgp.getId().getGameId(), userId).size();
+                if (guessCount > 0) {
+                    averageAttempts += guessCount;
+                    gamesWithGuesses++;
+                }
+            }
+            if (gamesWithGuesses > 0) {
+                averageAttempts /= gamesWithGuesses;
+            }
+            
+            PlayerScore playerScore = new PlayerScore(
+                    userId,
+                    user.getName(),
+                    user.getEmail(),
+                    totalScore,
+                    wins,
+                    losses,
+                    averageAttempts
+            );
+            leaderboard.add(playerScore);
+        }
+        
+        // Trier par totalScore décroissant
+        leaderboard.sort((p1, p2) -> p2.getTotalScore().compareTo(p1.getTotalScore()));
+        
+        return leaderboard;
     }
 }

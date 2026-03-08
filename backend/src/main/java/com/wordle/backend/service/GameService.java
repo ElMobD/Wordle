@@ -19,11 +19,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 
 @Service
 @Transactional
 public class GameService {
+
+    private static final Logger logger = Logger.getLogger(GameService.class.getName());
 
     @Autowired
     private SessionRepository sessionRepository;
@@ -302,6 +305,7 @@ public class GameService {
     /**
      * Finalise les scores de tous les joueurs pour un round complété
      * Appelle ScoreService pour calculer et agréger les points
+     * Cette méthode est idempotente - elle ne recalcule pas si déjà fait
      * 
      * @param sessionId UUID de la session
      * @param roundNumber Numéro du round qui se termine
@@ -312,6 +316,25 @@ public class GameService {
         List<Game> roundGames = updateRoundGamesStatusIfTimedOut(sessionId, roundNumber, timeLimit);
         
         if (roundGames.isEmpty()) {
+            return;
+        }
+        
+        // Vérifier si les scores ont déjà été finalisés (au moins un joueur a un score != 0)
+        boolean alreadyFinalized = false;
+        for (Game game : roundGames) {
+            if (game.getUser() != null && game.getId() != null) {
+                var sgp = sessionGamePlayerRepository.findById(
+                    new com.wordle.backend.model.SessionGamePlayerId(sessionId, game.getId(), game.getUser().getId())
+                );
+                if (sgp.isPresent() && sgp.get().getScore() != null && sgp.get().getScore() > 0) {
+                    alreadyFinalized = true;
+                    break;
+                }
+            }
+        }
+        
+        if (alreadyFinalized) {
+            logger.info("Scores déjà finalisés pour le round " + roundNumber + " de la session " + sessionId);
             return;
         }
         

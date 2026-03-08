@@ -405,6 +405,10 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                                         gameService.updateGameStatusIfTimedOut(g);
                                     }
                                     
+                                    // Finaliser les scores du round terminé
+                                    gameService.finalizeRoundScores(currentSession.getId(), currentRound, currentSession.getTimeLimit());
+                                    logger.info("Scores finalisés automatiquement pour le round " + currentRound + " de la session " + currentSession.getCode());
+                                    
                                     boolean hasNextRound = currentRound < currentSession.getRounds();
                                     broadcast(
                                             req.getSessionCode(),
@@ -440,6 +444,29 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                     // Juste pour tester la connexion, pas besoin de faire quoi que ce soit
                     logger.info("Received ping from user " + user.getName());
                     safeSend(session, new TextMessage(responseFactory.pong()));
+                }
+                case SHOW_LEADERBOARD -> {
+                    sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
+                    logger.info("SHOW_LEADERBOARD reçu avec sessionCode=" + sessionCode);
+                    if (sessionCode == null) {
+                        safeSend(session, new TextMessage(responseFactory.error("Session code manquant pour SHOW_LEADERBOARD")));
+                        return;
+                    }
+                    try {
+                        Session s = lobbyService.getSessionByCode(sessionCode);
+                        // Vérifier que l'utilisateur est bien l'hôte
+                        if (!s.getHost().getId().equals(user.getId())) {
+                            safeSend(session, new TextMessage(responseFactory.error("Seul l'hôte peut afficher le classement")));
+                            return;
+                        }
+                        // Broadcaster à tous les joueurs pour naviguer vers le leaderboard
+                        broadcast(sessionCode, responseFactory.showLeaderboard(sessionCode));
+                        logger.info("Leaderboard affiché pour session " + sessionCode);
+                    } catch (Exception e) {
+                        logger.severe("Erreur lors de l'affichage du leaderboard: " + e.getMessage());
+                        e.printStackTrace();
+                        safeSend(session, new TextMessage(responseFactory.error("Erreur lors de l'affichage du leaderboard: " + e.getMessage())));
+                    }
                 }
                 case GET_CHAT_HISTORY -> {
                     logger.info("Received GET_CHAT_HISTORY request for session code: " + root.get("sessionCode").asText() + " from user " + user.getName());
