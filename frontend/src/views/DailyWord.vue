@@ -9,7 +9,6 @@ import WordleKeyboard from '../components/WordleKeyboard.vue'
 
 const router = useRouter()
 const isHelpModalOpen = ref(false)
-const activeTab = ref<'settings' | 'user'>('settings')
 const isResultModalOpen = ref(false)
 const guesses = ref<any[]>([])
 const currentGuess = ref('')
@@ -19,6 +18,7 @@ const maxGuesses = 6
 const wordLength = 5
 const loading = ref(true)
 const error = ref('')
+let errorTimeout: number | null = null
 
 // Créer ou récupérer une partie DAILY au chargement
 onMounted(async () => {
@@ -34,10 +34,10 @@ onMounted(async () => {
       guesses.value = data.guesses || []
       gameStatus.value = data.status
     } else {
-      error.value = 'Erreur lors du chargement de la partie'
+      showError('Erreur lors du chargement de la partie')
     }
   } catch (err) {
-    error.value = 'Erreur réseau'
+    showError('Erreur réseau')
     console.error(err)
   } finally {
     loading.value = false
@@ -50,7 +50,20 @@ onMounted(async () => {
 onUnmounted(() => {
   // Nettoyer l'écouteur de clavier
   window.removeEventListener('keydown', handlePhysicalKeyPress)
+  // Annuler le timeout en cas de démontage
+  if (errorTimeout) clearTimeout(errorTimeout)
 })
+
+const showError = (message: string) => {
+  // Annuler le timeout précédent s'il existe
+  if (errorTimeout) clearTimeout(errorTimeout)
+  error.value = message
+  // Auto-effacer après 2 secondes
+  errorTimeout = window.setTimeout(() => {
+    error.value = ''
+    errorTimeout = null
+  }, 2000)
+}
 
 // Soumettre un mot à l'API
 const submitWord = async (word: string) => {
@@ -58,7 +71,7 @@ const submitWord = async (word: string) => {
   
   try {
     const response = await authenticatedFetch(
-      `http://localhost:8080/api/games/${gameId.value}/guess`,
+      `http://localhost/api/games/${gameId.value}/guess`,
       {
         method: 'POST',
         body: JSON.stringify({ word: word.toUpperCase() })
@@ -75,10 +88,10 @@ const submitWord = async (word: string) => {
       }
     } else {
       const errData = await response.json()
-      error.value = errData.error || 'Erreur lors de la soumission'
+      showError(errData.error || 'Erreur lors de la soumission')
     }
   } catch (err) {
-    error.value = 'Erreur réseau'
+    showError('Erreur réseau')
     console.error(err)
   }
 }
@@ -160,9 +173,16 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
       @contact="goToContact"
       @profile="goToProfile"
     />
+    <!-- Message d'erreur en survol -->
+    <Transition name="fade">
+      <div v-if="error" class="fixed top-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+        <div class="pointer-events-auto bg-red-500/90 border-2 border-red-400 text-white px-6 py-4 rounded-xl shadow-2xl backdrop-blur-sm">
+          {{ error }}
+        </div>
+      </div>
+    </Transition>
     <main class="relative z-5 flex flex-1 min-h-0 w-full items-center justify-center p-4">
       <div class="flex flex-col flex-1 min-h-0 w-full max-w-xl h-full gap-4 justify-between items-center">
-        <div v-if="error" class="relative z-10 bg-red-500/20 border border-red-500/60 text-red-300 p-4 text-center rounded-lg mb-4 w-full">{{ error }}</div>
         <div v-if="loading" class="relative z-5 flex items-center justify-center flex-1 text-white w-full">Chargement...</div>
         <template v-else>
           <div class="flex-1 min-h-0 w-full flex items-center justify-center">
@@ -221,4 +241,28 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
   </div>
 </template>
 
+<style scoped>
+.fade-enter-active {
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
 
+.fade-leave-active {
+  transition: opacity 0.7s ease-in, transform 0.7s ease-in;
+}
+
+.fade-enter-from {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-20px);
+}
+
+.fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-20px);
+}
+
+.fade-enter-to,
+.fade-leave-from {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+</style>
