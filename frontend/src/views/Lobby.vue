@@ -43,6 +43,17 @@ const players = ref<any[]>([])
 const nbrPlayers = ref(0)
 const isHost = ref(false)
 const userIdCookie = ref<string | null>(null)
+const loadGameRequested = ref(false)
+
+function requestCurrentGameIfNeeded() {
+  const currentRound = Number(lobbyInfo.value?.currentRound ?? 0)
+  const hasGameInRoute = Boolean(route.params.gameId)
+
+  if (!hasGameInRoute && currentRound > 0 && isConnected.value && !loadGameRequested.value) {
+    loadGameRequested.value = true
+    send({ type: 'LOAD_GAME', sessionCode })
+  }
+}
 
 const goHome = () => {
   router.push('/homepage')
@@ -95,7 +106,7 @@ watch(lastMessage, (msg) => {
     players.value = sortedPlayers
     nbrPlayers.value = players.value.length
     isHost.value = String(lobbyInfo.value.hostId) === String(userIdCookie.value)
-    // Note: Ne pas naviguer automatiquement ici, le message game_start s'en charge
+    requestCurrentGameIfNeeded()
   } else if (msg && msg.type === 'player_left') {
     // Renvoyer le user vers /multiplayer si c'est lui qui a quitté
     // (cas où un joueur ouvre plusieurs onglets et quitte depuis un autre onglet)
@@ -107,11 +118,24 @@ watch(lastMessage, (msg) => {
     }
   } else if (msg && msg.type === 'player_joined') {
     send({ type: 'LOBBYINFOS', sessionCode })
+  } else if (msg && msg.type === 'load_game') {
+    loadGameRequested.value = false
+    if (msg.gameId) {
+      router.replace(`/lobby/${sessionCode}/${msg.gameId}`)
+    }
   } else if (msg && msg.type === 'error') {
+    if (
+      msg.message === 'Aucun round en cours pour cette session' ||
+      msg.message === 'Aucune game trouvée pour ce joueur dans ce round'
+    ) {
+      loadGameRequested.value = false
+      return
+    }
     if (msg.message === 'Impossible de rejoindre une session terminée ou annulée') {
       router.push('/multiplayer')
     }
   } else if (msg && msg.type === 'game_start') {
+    loadGameRequested.value = false
     router.push(`/lobby/${sessionCode}/${msg.gameId}`)
   }
 })
