@@ -28,48 +28,60 @@ export function useAuth() {
     document.cookie = 'userId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
   }
 
-  const checkAuth = async () => {
-    const stored = localStorage.getItem('isAuthenticated')
+  const checkAuth = async (): Promise<boolean> => {
     const storedToken = localStorage.getItem('token')
+
+    // Sans token, on considère l'utilisateur non authentifié.
+    if (!storedToken) {
+      logout()
+      return false
+    }
+
+    token.value = storedToken
+    setTokenCookie(storedToken)
+
+    // Hydrate l'état user local si disponible (cache UI),
+    // mais l'autorisation reste validée par l'API.
     const storedUser = localStorage.getItem('user')
-    
-    // Tous les trois doivent être présents pour être authentifié
-    if (stored === 'true' && storedToken && storedUser) {
-      isAuthenticated.value = true
-      token.value = storedToken
-      user.value = JSON.parse(storedUser)
-      setTokenCookie(storedToken)
-      // Vérifier auprès du serveur que l'utilisateur existe toujours
+    if (storedUser) {
       try {
-        const response = await fetch('http://localhost:8080/api/user/check', {
-          headers: {
-            'Authorization': `Bearer ${storedToken}`
-          }
-        })
-        if (!response.ok) {
-          // L'utilisateur n'existe plus ou le token est invalide
-          logout()
-        }
-        //réponse recu affiché en console pour debug
-        const data = await response.json();
-        //mettre l'id de l'utilisateur dans les cookies pour le websocket
-        if(data.userId) {
-          document.cookie = `userId=${data.userId}; path=/` // Stocke le userId dans les cookies
-        }
-        // Si ok, l'utilisateur est toujours valide
-      } catch (error) {
-        // Erreur réseau, on garde l'authentification pour l'instant
-        console.error('Erreur lors de la vérification d\'authentification:', error)
+        user.value = JSON.parse(storedUser)
+      } catch {
+        localStorage.removeItem('user')
       }
-    } else {
-      // Si l'un manque, on considère que c'est incohérent et on nettoie tout
-      isAuthenticated.value = false
-      token.value = null
-      user.value = null
-      localStorage.removeItem('isAuthenticated')
-      localStorage.removeItem('user')
-      localStorage.removeItem('token')
-      removeTokenCookie()
+    }
+
+    try {
+      const response = await fetch('http://localhost/api/user/check', {
+        headers: {
+          'Authorization': `Bearer ${storedToken}`
+        }
+      })
+      console.log('Vérification d\'authentification, réponse API:', response)
+      if (!response.ok) {
+        logout()
+        return false
+      }
+
+      const data = await response.json()
+      if (!data?.authenticated) {
+        logout()
+        return false
+      }
+
+      isAuthenticated.value = true
+      localStorage.setItem('isAuthenticated', 'true')
+
+      if (data.userId) {
+        document.cookie = `userId=${data.userId}; path=/`
+      }
+
+      return true
+    } catch (error) {
+      // En cas d'erreur réseau, on conserve la session locale temporairement.
+      isAuthenticated.value = true
+      console.error('Erreur lors de la vérification d\'authentification:', error)
+      return true
     }
   }
 

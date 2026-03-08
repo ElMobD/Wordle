@@ -62,10 +62,7 @@ const routes = [
   },
   {
     path: '/',
-    redirect: () => {
-      const { isAuthenticated } = useAuth()
-      return isAuthenticated.value ? '/homepage' : '/login'
-    }
+    redirect: '/homepage'
   }
 ]
 
@@ -75,23 +72,25 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to, from, next) => {
-  const { isAuthenticated, checkAuth } = useAuth()
-  
-  // Vérifier l'état d'authentification (y compris serveur)
-  await checkAuth()
-  
-  // Si l'utilisateur essaie d'accéder à une route protégée sans être connecté
-  if (to.meta.requiresAuth && !isAuthenticated.value) {
-    next('/login')
+  const { checkAuth } = useAuth()
+
+  if (to.meta.requiresAuth) {
+    const isValidSession = await checkAuth()
+    if (!isValidSession) {
+      next('/login')
+      return
+    }
   }
-  // Si l'utilisateur est connecté et essaie d'accéder au login
-  else if (to.path === '/login' && isAuthenticated.value) {
-    next('/homepage')
+
+  if (to.path === '/login') {
+    const isValidSession = await checkAuth()
+    if (isValidSession) {
+      next('/homepage')
+      return
+    }
   }
-  // Sinon, autoriser la navigation
-  else {
-    next()
-  }
+
+  next()
 })
 
 export default router

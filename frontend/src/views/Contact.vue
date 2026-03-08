@@ -136,7 +136,7 @@ const searchUsers = async () => {
   
   searchLoading.value = true
   try {
-    const response = await authenticatedFetch(`http://localhost:8080/api/friends/search?query=${encodeURIComponent(searchUsername.value)}`)
+    const response = await authenticatedFetch(`http://localhost/api/friends/search?query=${encodeURIComponent(searchUsername.value)}`)
     searchResults.value = await response.json()
   } catch (err) {
     console.error('Erreur lors de la recherche:', err)
@@ -147,7 +147,7 @@ const searchUsers = async () => {
 
 const sendFriendRequest = async (userId: number) => {
   try {
-    const response = await authenticatedFetch(`http://localhost:8080/api/friends/request/send/${userId}`, {
+    const response = await authenticatedFetch(`http://localhost/api/friends/request/send/${userId}`, {
       method: 'POST'
     })
     if (!response.ok) {
@@ -163,7 +163,7 @@ const sendFriendRequest = async (userId: number) => {
 
 const acceptRequest = async (requestId: number) => {
   try {
-    const response = await authenticatedFetch(`http://localhost:8080/api/friends/request/${requestId}/accept`, {
+    const response = await authenticatedFetch(`http://localhost/api/friends/request/${requestId}/accept`, {
       method: 'POST'
     })
     if (!response.ok) {
@@ -180,7 +180,7 @@ const acceptRequest = async (requestId: number) => {
 
 const rejectRequest = async (requestId: number) => {
   try {
-    const response = await authenticatedFetch(`http://localhost:8080/api/friends/request/${requestId}/reject`, {
+    const response = await authenticatedFetch(`http://localhost/api/friends/request/${requestId}/reject`, {
       method: 'POST'
     })
     if (!response.ok) {
@@ -196,7 +196,7 @@ const rejectRequest = async (requestId: number) => {
 
 const removeFriend = async (friendId: number) => {
   try {
-    const response = await authenticatedFetch(`http://localhost:8080/api/friends/remove/${friendId}`, {
+    const response = await authenticatedFetch(`http://localhost/api/friends/remove/${friendId}`, {
       method: 'DELETE'
     })
     if (!response.ok) {

@@ -39,9 +39,14 @@ public class UserController {
         
         // Décoder le token pour extraire toutes les informations
         Claims claims = jwtValidator.validateToken(token);
+        String email = claims.get("email", String.class);
+
+        if (email == null || userService.findByEmail(email).isEmpty()) {
+            return ResponseEntity.status(401).build();
+        }
 
         Map<String, Object> profile = new HashMap<>();
-        profile.put("email", claims.get("email", String.class));
+        profile.put("email", email);
         profile.put("name", claims.get("name", String.class));
         profile.put("picture", claims.get("picture", String.class));
         profile.put("locale", claims.get("locale", String.class));
@@ -54,30 +59,39 @@ public class UserController {
     @GetMapping("/check")
     public ResponseEntity<Map<String, Object>> checkAuthentication(Authentication authentication) {
         Map<String, Object> response = new HashMap<>();
-        if (authentication != null) {
+        if (authentication == null) {
+            response.put("authenticated", false);
+            return ResponseEntity.status(401).body(response);
+        }
+
+        Object details = authentication.getDetails();
+        if (!(details instanceof String token)) {
+            response.put("authenticated", false);
+            return ResponseEntity.status(401).body(response);
+        }
+
+        try {
+            Claims claims = jwtValidator.validateToken(token);
+            String email = claims.get("email", String.class);
+            if (email == null) {
+                response.put("authenticated", false);
+                return ResponseEntity.status(401).body(response);
+            }
+
+            com.wordle.backend.model.User existingUser = userService.findByEmail(email).orElse(null);
+            if (existingUser == null) {
+                response.put("authenticated", false);
+                return ResponseEntity.status(401).body(response);
+            }
+
             response.put("authenticated", true);
             response.put("user", authentication.getPrincipal());
-            // Extraire l'email ou le googleId du token
-            Object details = authentication.getDetails();
-            if (details instanceof String token) {
-                try {
-                    Claims claims = jwtValidator.validateToken(token);
-                    String email = claims.get("email", String.class);
-                    // Chercher l'utilisateur en base
-                    java.util.Optional<com.wordle.backend.model.User> userOpt = null;
-                    if (email != null) {
-                        userOpt = userService.findByEmail(email);
-                    }
-                    if (userOpt != null && userOpt.isPresent()) {
-                        response.put("userId", userOpt.get().getId());
-                    }
-                } catch (Exception e) {
-                    // ignore, id non disponible
-                }
-            }
-        } else {
+            response.put("userId", existingUser.getId());
+        } catch (Exception e) {
             response.put("authenticated", false);
+            return ResponseEntity.status(401).body(response);
         }
+
         return ResponseEntity.ok(response);
     }
 }

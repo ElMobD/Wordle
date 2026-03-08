@@ -13,7 +13,11 @@ export async function authenticatedFetch(
   const { logout, checkAuth, getToken } = useAuth()
 
   // Sync refs with localStorage before using the token
-  checkAuth()
+  const isValidSession = await checkAuth()
+  if (!isValidSession) {
+    await router.push('/login')
+    throw new Error('Session invalide - veuillez vous reconnecter')
+  }
 
   // 1️⃣ Prépare les headers
   const headers = new Headers(options.headers || {})
