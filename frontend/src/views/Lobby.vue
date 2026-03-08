@@ -241,5 +241,5 @@ const quitLobby = () => {
     </main>
   </div>
   <router-view v-else />
-  <LobbyChat :session-code="sessionCode" />
+  <LobbyChat v-if="!$route.path.includes('/leaderboard')" :session-code="sessionCode" />
 </template>
