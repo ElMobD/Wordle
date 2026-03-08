@@ -135,6 +135,10 @@ public class GameController {
         response.put("createdAt", game.getCreatedAt());
         response.put("completedAt", game.getCompletedAt());
 
+        if (game.getStatus() == Game.GameStatus.WON || game.getStatus() == Game.GameStatus.LOST) {
+            response.put("answer", game.getAnswer());
+        }
+
         List<Guess> guesses;
         if (userId != null) {
             // Solo ou guesses du joueur courant en multi

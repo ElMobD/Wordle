@@ -14,6 +14,7 @@ const guesses = ref<any[]>([])
 const currentGuess = ref('')
 const gameId = ref<string>('')
 const gameStatus = ref<'IN_PROGRESS' | 'WON' | 'LOST'>('IN_PROGRESS')
+const answer = ref('')
 const maxGuesses = 6
 const wordLength = 5
 const loading = ref(true)
@@ -33,6 +34,8 @@ onMounted(async () => {
       gameId.value = data.id
       guesses.value = data.guesses || []
       gameStatus.value = data.status
+      answer.value = data.answer || ''
+      isResultModalOpen.value = data.status === 'WON' || data.status === 'LOST'
     } else {
       showError('Erreur lors du chargement de la partie')
     }
@@ -82,6 +85,7 @@ const submitWord = async (word: string) => {
       const data = await response.json()
       guesses.value = data.guesses || []
       gameStatus.value = data.status
+      answer.value = data.answer || ''
       
       if (gameStatus.value === 'WON' || gameStatus.value === 'LOST') {
         isResultModalOpen.value = true
@@ -99,6 +103,11 @@ const submitWord = async (word: string) => {
 const goHome = () => {
   router.push('/homepage')
 }
+
+const closeResultModal = () => {
+  isResultModalOpen.value = false
+}
+
 const goToContact = () => {
   router.push('/contact')
 }
@@ -216,7 +225,7 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
         </div>
       </div>
     </Modal>
-    <Modal :isOpen="gameStatus === 'WON' || gameStatus === 'LOST'" @close="goHome">
+    <Modal :isOpen="isResultModalOpen" @close="closeResultModal">
       <div class="flex flex-col items-center gap-6 py-4">
         <div class="text-6xl leading-none">{{ gameStatus === 'WON' ? '✨' : '💡' }}</div>
         <p class="text-lg text-center text-white/95 m-0">
@@ -225,6 +234,10 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
             : 'Dommage ! Revenez demain pour un nouveau mot !' 
           }}
         </p>
+        <div v-if="answer" class="text-center pt-2 border-t border-white/20 w-full">
+          <div class="text-white/70 text-xs">La bonne reponse :</div>
+          <div class="text-yellow-300 text-lg sm:text-xl font-bold tracking-widest">{{ answer.toUpperCase() }}</div>
+        </div>
         <div class="flex gap-8 px-8 py-4 bg-white/5 rounded-xl w-full justify-center">
           <div class="flex flex-col items-center gap-2">
             <span class="text-2xl font-bold text-white">{{ guesses.length }}</span>
