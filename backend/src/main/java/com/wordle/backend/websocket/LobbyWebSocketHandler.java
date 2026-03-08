@@ -77,7 +77,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
             session.getAttributes().put("user", user);
             JSONObject response = new JSONObject();
             response.put("userId", user.getId());
-            session.sendMessage(new TextMessage(response.toString()));
+            safeSend(session, new TextMessage(response.toString()));
         } catch (Exception e) {
             session.close();
         }
@@ -120,7 +120,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         // Reply to the creator with the session info
                         String response = responseFactory.sessionCreated(s);
                         logger.info("Réponse créée: " + response);
-                        session.sendMessage(new TextMessage(response));
+                        safeSend(session, new TextMessage(response));
                         logger.info("Message envoyé au client");
                         // Broadcast player_joined so any other connected clients update their player lists
                         broadcast(s.getCode(), responseFactory.playerJoined(user, s.getCode()));
@@ -136,11 +136,11 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                             msg = parts[0];
                             code = parts.length > 1 ? parts[1] : null;
                         }
-                        session.sendMessage(new TextMessage(responseFactory.errorWithSessionCode(msg, code)));
+                        safeSend(session, new TextMessage(responseFactory.errorWithSessionCode(msg, code)));
                     } catch (Exception e) {
                         logger.severe("Exception inattendue dans CREATE: " + e.getMessage());
                         e.printStackTrace();
-                        session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la création de la session: " + e.getMessage())));
+                        safeSend(session, new TextMessage(responseFactory.error("Erreur lors de la création de la session: " + e.getMessage())));
                     }
                 }
                 case JOIN -> {
@@ -157,9 +157,9 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                             msg = parts[0];
                             code = parts.length > 1 ? parts[1] : null;
                         }
-                        session.sendMessage(new TextMessage(responseFactory.errorWithSessionCode(msg, code)));
+                        safeSend(session, new TextMessage(responseFactory.errorWithSessionCode(msg, code)));
                     } catch (IllegalArgumentException e) {
-                        session.sendMessage(new TextMessage(responseFactory.error(e.getMessage())));
+                        safeSend(session, new TextMessage(responseFactory.error(e.getMessage())));
                     }
                 }
                 case CHAT -> {
@@ -190,14 +190,14 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         logger.info("Chat message broadcasted successfully for session " + req.getSessionCode());
                     } catch (Exception e) {
                         logger.severe("Error handling chat message for session " + req.getSessionCode() + ": " + e.getMessage());
-                        session.sendMessage(new TextMessage(responseFactory.error("Chat error: " + e.getMessage())));
+                        safeSend(session, new TextMessage(responseFactory.error("Chat error: " + e.getMessage())));
                     }
                 }
                 case LOBBYINFOS ->{
                     sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
                     //logger.info("Received LOBBYINFOS request for session code: " + sessionCode);
                     if (sessionCode == null) {
-                        session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour LOBBYINFO")));
+                        safeSend(session, new TextMessage(responseFactory.error("Session code manquant pour LOBBYINFO")));
                         return;
                     }
                     try {
@@ -205,7 +205,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         //logger.info("Session retrieved for LOBBYINFOS: " + s);
                         // Récupère les infos du lobby (joueurs, paramètres, etc.)
                         String lobbyInfo = responseFactory.lobbyInfo(s);
-                        session.sendMessage(new TextMessage(lobbyInfo));
+                        safeSend(session, new TextMessage(lobbyInfo));
                         
                         // Broadcaster à tous les joueurs du lobby pour synchroniser (nouvel hôte, etc.)
                         broadcast(sessionCode, lobbyInfo);
@@ -215,13 +215,13 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                     } catch (Exception e) {
                         //logger.severe("Error retrieving lobby info for session code " + sessionCode + ": " + e.getMessage());
                         e.printStackTrace();
-                        session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la récupération du lobby: " + e.getMessage())));
+                        safeSend(session, new TextMessage(responseFactory.error("Erreur lors de la récupération du lobby: " + e.getMessage())));
                     }
                 }
                 case LEAVE_LOBBY -> {
                     sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
                     if (sessionCode == null) {
-                        session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour LEAVE_LOBBY")));
+                        safeSend(session, new TextMessage(responseFactory.error("Session code manquant pour LEAVE_LOBBY")));
                         return;
                     }
                     try {
@@ -240,7 +240,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         lobbyService.leaveSession(user, sessionCode);
                         
                         // Envoyer une confirmation au client qui quitte
-                        session.sendMessage(new TextMessage(responseFactory.playerLeft(user, sessionCode)));
+                        safeSend(session, new TextMessage(responseFactory.playerLeft(user, sessionCode)));
                         
                         // Retirer la session du lobby
                         lobbies.getOrDefault(sessionCode, Set.of()).remove(session);
@@ -262,14 +262,14 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                     } catch (Exception e) {
                         logger.severe("Erreur lors de la sortie du lobby: " + e.getMessage());
                         e.printStackTrace();
-                        session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la sortie du lobby: " + e.getMessage())));
+                        safeSend(session, new TextMessage(responseFactory.error("Erreur lors de la sortie du lobby: " + e.getMessage())));
                     }
                 }
                 case START_GAME -> {
                     sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
                     logger.info("START_GAME reçu avec sessionCode=" + sessionCode);
                     if (sessionCode == null) {
-                        session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour START_GAME")));
+                        safeSend(session, new TextMessage(responseFactory.error("Session code manquant pour START_GAME")));
                         return;
                     }
                     try {
@@ -284,14 +284,14 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                     } catch (Exception e) {
                         logger.severe("Erreur lors du démarrage de la partie: " + e.getMessage());
                         e.printStackTrace();
-                        session.sendMessage(new TextMessage(responseFactory.error("Erreur lors du démarrage de la partie: " + e.getMessage())));
+                        safeSend(session, new TextMessage(responseFactory.error("Erreur lors du démarrage de la partie: " + e.getMessage())));
                     }
                 }
                 case NEXT_ROUND -> {
                     sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
                     logger.info("NEXT_ROUND reçu avec sessionCode=" + sessionCode);
                     if (sessionCode == null) {
-                        session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour NEXT_ROUND")));
+                        safeSend(session, new TextMessage(responseFactory.error("Session code manquant pour NEXT_ROUND")));
                         return;
                     }
                     try {
@@ -308,18 +308,18 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         }
                     } catch (IllegalArgumentException e) {
                         logger.warning("Erreur NEXT_ROUND: " + e.getMessage());
-                        session.sendMessage(new TextMessage(responseFactory.error(e.getMessage())));
+                        safeSend(session, new TextMessage(responseFactory.error(e.getMessage())));
                     } catch (Exception e) {
                         logger.severe("Erreur lors du lancement du prochain round: " + e.getMessage());
                         e.printStackTrace();
-                        session.sendMessage(new TextMessage(responseFactory.error("Erreur lors du lancement du prochain round: " + e.getMessage())));
+                        safeSend(session, new TextMessage(responseFactory.error("Erreur lors du lancement du prochain round: " + e.getMessage())));
                     }
                 }
                 case LOAD_GAME -> {
                     sessionCode = root.has("sessionCode") ? root.get("sessionCode").asText() : null;
                     logger.info("LOAD_GAME reçu avec sessionCode=" + sessionCode + " from user " + user.getName());
                     if (sessionCode == null) {
-                        session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour LOAD_GAME")));
+                        safeSend(session, new TextMessage(responseFactory.error("Session code manquant pour LOAD_GAME")));
                         return;
                     }
                     try {
@@ -328,7 +328,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         Integer roundNumber = s.getCurrentRound();
                         
                         if (roundNumber == null || roundNumber == 0) {
-                            session.sendMessage(new TextMessage(responseFactory.error("Aucun round en cours pour cette session")));
+                            safeSend(session, new TextMessage(responseFactory.error("Aucun round en cours pour cette session")));
                             return;
                         }
                         
@@ -339,16 +339,16 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                             Game playerGame = optionalGame.get();
                             // Vérifier si la game a timeout et mettre à jour le statut si nécessaire
                             playerGame = gameService.updateGameStatusIfTimedOut(playerGame);
-                            session.sendMessage(new TextMessage(responseFactory.loadGame(playerGame)));
+                            safeSend(session, new TextMessage(responseFactory.loadGame(playerGame)));
                             logger.info("Game chargée pour userId=" + user.getId() + ", gameId=" + playerGame.getId());
                         } else {
-                            session.sendMessage(new TextMessage(responseFactory.error("Aucune game trouvée pour ce joueur dans ce round")));
+                            safeSend(session, new TextMessage(responseFactory.error("Aucune game trouvée pour ce joueur dans ce round")));
                             logger.warning("Aucune game trouvée pour userId=" + user.getId() + " dans session " + sessionCode + " round " + roundNumber);
                         }
                     } catch (Exception e) {
                         logger.severe("Erreur lors du chargement de la partie: " + e.getMessage());
                         e.printStackTrace();
-                        session.sendMessage(new TextMessage(responseFactory.error("Erreur lors du chargement de la partie: " + e.getMessage())));
+                        safeSend(session, new TextMessage(responseFactory.error("Erreur lors du chargement de la partie: " + e.getMessage())));
                     }
                 }
                 case SUBMIT_GUESS -> {
@@ -357,7 +357,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         SubmitGuessRequest req = mapper.treeToValue(root, SubmitGuessRequest.class);
                         
                         if (req.getGameId() == null || req.getGuess() == null) {
-                            session.sendMessage(new TextMessage(responseFactory.error("gameId et guess manquants pour SUBMIT_GUESS")));
+                            safeSend(session, new TextMessage(responseFactory.error("gameId et guess manquants pour SUBMIT_GUESS")));
                             return;
                         }
                         
@@ -374,9 +374,9 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         
                         // Envoyer le résultat du guess à ce joueur
                         if (lastGuess != null) {
-                            session.sendMessage(new TextMessage(responseFactory.submitGuessResponse(game, lastGuess)));
+                            safeSend(session, new TextMessage(responseFactory.submitGuessResponse(game, lastGuess)));
                         } else {
-                            session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la sauvegarde de la tentative")));
+                            safeSend(session, new TextMessage(responseFactory.error("Erreur lors de la sauvegarde de la tentative")));
                         }
 
                         // Si la game est maintenant WON ou LOST, broadcaster le changement de statut à tous les joueurs
@@ -429,17 +429,17 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         
                     } catch (IllegalArgumentException e) {
                         logger.warning("Erreur client SUBMIT_GUESS: " + e.getMessage());
-                        session.sendMessage(new TextMessage(responseFactory.error(e.getMessage())));
+                        safeSend(session, new TextMessage(responseFactory.error(e.getMessage())));
                     } catch (Exception e) {
                         logger.severe("Erreur lors de la soumission du guess: " + e.getMessage());
                         e.printStackTrace();
-                        session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la soumission du guess: " + e.getMessage())));
+                        safeSend(session, new TextMessage(responseFactory.error("Erreur lors de la soumission du guess: " + e.getMessage())));
                     }
                 }
                 case PING -> {
                     // Juste pour tester la connexion, pas besoin de faire quoi que ce soit
                     logger.info("Received ping from user " + user.getName());
-                    session.sendMessage(new TextMessage(responseFactory.pong()));
+                    safeSend(session, new TextMessage(responseFactory.pong()));
                 }
                 case GET_CHAT_HISTORY -> {
                     logger.info("Received GET_CHAT_HISTORY request for session code: " + root.get("sessionCode").asText() + " from user " + user.getName());
@@ -449,7 +449,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         if (session.isOpen()) {
                             try {
 
-                                session.sendMessage(new TextMessage(responseFactory.error("Session code manquant pour GET_CHAT_HISTORY")));
+                                safeSend(session, new TextMessage(responseFactory.error("Session code manquant pour GET_CHAT_HISTORY")));
                             } catch (Exception e) {
                                 logger.severe("Erreur lors de l'envoi du message WebSocket: " + e.getMessage());
                             }
@@ -463,7 +463,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         if (session.isOpen()) {
                             try {
                                 logger.info("Sending chat history to user " + user.getName() + " for session code " + sessionCode);
-                                session.sendMessage(new TextMessage(chatHistory));
+                                safeSend(session, new TextMessage(chatHistory));
                             } catch (Exception e) {
                                 logger.severe("Erreur lors de l'envoi du message WebSocket: " + e.getMessage());
                             }
@@ -472,7 +472,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                         logger.severe("Error retrieving chat history for session code " + sessionCode + ": " + e.getMessage());
                         if (session.isOpen()) {
                             try {
-                                session.sendMessage(new TextMessage(responseFactory.error("Erreur lors de la récupération de l'historique du chat: " + e.getMessage())));
+                                safeSend(session, new TextMessage(responseFactory.error("Erreur lors de la récupération de l'historique du chat: " + e.getMessage())));
                             } catch (Exception ex) {
                                 logger.severe("Erreur lors de l'envoi du message WebSocket: " + ex.getMessage());
                             }
@@ -483,13 +483,21 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
             }
         } catch (Exception e) {
             if (session.isOpen()) {
-                session.sendMessage(new TextMessage(responseFactory.error("Malformed message or internal error: " + e.getMessage())));
+                safeSend(session, new TextMessage(responseFactory.error("Malformed message or internal error: " + e.getMessage())));
             }
         }
     }
 
     private void addToLobby(String code, WebSocketSession session) {
         lobbies.computeIfAbsent(code, k -> ConcurrentHashMap.newKeySet()).add(session);
+    }
+
+    private void safeSend(WebSocketSession session, TextMessage message) throws Exception {
+        synchronized (session) {
+            if (session.isOpen()) {
+                session.sendMessage(message);
+            }
+        }
     }
 
     private void sendGameStartToPlayers(String sessionCode, List<Game> games) throws Exception {
@@ -510,7 +518,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                     .orElse(null);
 
             if (playerGame != null) {
-                ws.sendMessage(new TextMessage(responseFactory.gameStart(playerGame)));
+                safeSend(ws, new TextMessage(responseFactory.gameStart(playerGame)));
                 logger.info("Game envoyée à userId=" + wsUser.getId() + ", gameId=" + playerGame.getId());
             } else {
                 logger.warning("Aucune game trouvée pour userId=" + wsUser.getId());
@@ -524,7 +532,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
         for (WebSocketSession ws : lobbies.getOrDefault(code, Set.of())) {
             if (ws.isOpen()) {
                 System.out.println("Broadcasting to session ID: " + ws.getId() + " - Payload: " + payload);
-                ws.sendMessage(new TextMessage(payload));
+                safeSend(ws, new TextMessage(payload));
             } else {
                 System.out.println("Skipping closed WebSocket session ID: " + ws.getId());
             }
@@ -567,3 +575,5 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
         lobbies.values().forEach(sessions -> sessions.remove(session));
     }
 }
+
+
