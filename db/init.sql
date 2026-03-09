@@ -137,7 +137,24 @@ CREATE TABLE IF NOT EXISTS friendships (
 );
 
 -- ============================================================================
--- SECTION 5 : INDICES POUR OPTIMISATION DES PERFORMANCES
+-- SECTION 5 : STATISTIQUES DAILY WORDLE
+-- ============================================================================
+
+-- Table des statistiques personnelles utilisateur pour le mode DAILY
+CREATE TABLE IF NOT EXISTS daily_stats (
+    user_id             BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    total_played        INT NOT NULL DEFAULT 0,
+    total_won           INT NOT NULL DEFAULT 0,
+    current_streak      INT NOT NULL DEFAULT 0,
+    max_streak          INT NOT NULL DEFAULT 0,
+    guess_distribution  JSONB NOT NULL DEFAULT '{"1":0,"2":0,"3":0,"4":0,"5":0,"6":0}'::jsonb,
+    last_played_date    DATE,
+    last_win_date       DATE,
+    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================================
+-- SECTION 6 : INDICES POUR OPTIMISATION DES PERFORMANCES
 -- ============================================================================
 
 -- Indices sur la table games
@@ -169,6 +186,10 @@ CREATE INDEX IF NOT EXISTS idx_friend_requests_receiver_id ON friend_requests(re
 CREATE INDEX IF NOT EXISTS idx_friend_requests_status ON friend_requests(status);
 CREATE INDEX IF NOT EXISTS idx_friendships_user1_id ON friendships(user1_id);
 CREATE INDEX IF NOT EXISTS idx_friendships_user2_id ON friendships(user2_id);
+
+-- Indices sur les statistiques daily
+CREATE INDEX IF NOT EXISTS idx_daily_stats_total_played ON daily_stats(total_played);
+CREATE INDEX IF NOT EXISTS idx_daily_stats_total_won ON daily_stats(total_won);
 
 -- ============================================================================
 -- FIN DU SCRIPT
