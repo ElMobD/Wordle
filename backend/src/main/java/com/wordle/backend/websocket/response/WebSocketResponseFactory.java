@@ -205,6 +205,7 @@ public class WebSocketResponseFactory {
                 // Déterminer la raison
                 boolean timerExpired = gameService.isRoundTimerExpired(session, game.getRoundNumber());
                 node.put("roundFinishedReason", timerExpired ? "TIMER" : "ALL_PLAYERS_FINISHED");
+                node.put("answer", game.getAnswer() != null ? game.getAnswer() : "");
             }
         }
         

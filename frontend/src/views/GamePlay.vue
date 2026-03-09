@@ -116,6 +116,7 @@ watch(lastMessage, (msg) => {
     if (msg.roundFinished === true) {
       roundFinished.value = true
       roundFinishedReason.value = msg.roundFinishedReason || 'TIMER'
+      correctAnswer.value = msg.answer || ''
       stopTimer()
     } else {
       // Le round n'est pas terminé : réinitialiser et démarrer le timer

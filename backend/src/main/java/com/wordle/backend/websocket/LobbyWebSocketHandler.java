@@ -339,6 +339,7 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
                             Game playerGame = optionalGame.get();
                             // Vérifier si la game a timeout et mettre à jour le statut si nécessaire
                             playerGame = gameService.updateGameStatusIfTimedOut(playerGame);
+
                             safeSend(session, new TextMessage(responseFactory.loadGame(playerGame)));
                             logger.info("Game chargée pour userId=" + user.getId() + ", gameId=" + playerGame.getId());
                         } else {
