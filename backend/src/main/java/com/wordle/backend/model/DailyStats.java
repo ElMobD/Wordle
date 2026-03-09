@@ -4,6 +4,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -28,7 +30,8 @@ public class DailyStats {
     @Column(name = "max_streak", nullable = false)
     private Integer maxStreak = 0;
 
-    @Column(name = "guess_distribution", nullable = false, columnDefinition = "jsonb")
+    @Column(name = "guess_distribution", nullable = false)
+    @JdbcTypeCode(SqlTypes.JSON)
     private String guessDistribution = "{\"1\":0,\"2\":0,\"3\":0,\"4\":0,\"5\":0,\"6\":0}";
 
     @Column(name = "last_played_date")
