@@ -47,6 +47,9 @@ public class GameService {
     private ScoreService scoreService;
 
     @Autowired
+    private DailyStatsService dailyStatsService;
+
+    @Autowired
     private com.wordle.backend.repository.SessionGamePlayerRepository sessionGamePlayerRepository;
 
 
@@ -242,7 +245,19 @@ public class GameService {
             game.setCompletedAt(LocalDateTime.now());
         }
 
-        return gameRepository.save(game);
+        Game savedGame = gameRepository.save(game);
+
+        if (savedGame.getGameType() == Game.GameType.DAILY
+                && (savedGame.getStatus() == Game.GameStatus.WON || savedGame.getStatus() == Game.GameStatus.LOST)) {
+            try {
+                dailyStatsService.recordDailyGameResult(userId, savedGame);
+            } catch (Exception e) {
+                logger.warning("Erreur lors de la mise a jour des stats DAILY pour gameId="
+                        + savedGame.getId() + ": " + e.getMessage());
+            }
+        }
+
+        return savedGame;
     }
 
     public Game getGame(UUID gameId, Long userId) {
