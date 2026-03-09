@@ -68,10 +68,10 @@ const handleBackdropClick = (e: MouseEvent) => {
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 16px;
-  padding: 24px;
-  max-width: 500px;
-  width: 90%;
-  max-height: 80vh;
+  padding: clamp(14px, 2vw, 24px);
+  max-width: min(680px, 92vw);
+  width: 92%;
+  max-height: 88dvh;
   overflow-y: auto;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }

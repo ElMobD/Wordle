@@ -172,7 +172,7 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
 
 <template>
   <!-- Couche d'atténuation du gradient -->
-  <div class="relative flex flex-col min-h-screen w-full">
+  <div class="relative flex flex-col min-h-[100dvh] w-full overflow-y-auto">
     <div class="fixed inset-0 bg-white/5 pointer-events-none z-0"></div>
     <Header
       title="Wordle du Jour"
@@ -190,19 +190,19 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
         </div>
       </div>
     </Transition>
-    <main class="relative z-5 flex flex-1 min-h-0 w-full items-center justify-center p-4">
-      <div class="flex flex-col flex-1 min-h-0 w-full max-w-xl h-full gap-4 justify-between items-center">
+    <main class="relative z-5 flex flex-1 min-h-0 w-full items-start xl:items-center justify-center px-3 py-4 sm:px-4 lg:px-6 overflow-y-auto">
+      <div class="flex flex-col flex-1 min-h-0 w-full max-w-xl h-auto xl:h-full gap-3 sm:gap-4 justify-start xl:justify-between items-center">
         <div v-if="loading" class="relative z-5 flex items-center justify-center flex-1 text-white w-full">Chargement...</div>
         <template v-else>
           <div class="flex-1 min-h-0 w-full flex items-center justify-center">
             <div class="w-full flex justify-center">
-              <div class="max-w-[320px] w-full sm:max-w-[360px]">
+              <div class="max-w-[300px] w-full sm:max-w-[340px] xl:max-w-[360px]">
                 <WordleGrid :guesses="guesses" :currentGuess="currentGuess" :maxGuesses="maxGuesses" :wordLength="wordLength" />
               </div>
             </div>
           </div>
           <div class="w-full flex justify-center">
-            <div class="max-w-[340px] w-full sm:max-w-[380px]">
+            <div class="max-w-[320px] w-full sm:max-w-[360px] xl:max-w-[380px]">
               <WordleKeyboard :guesses="guesses" @keyPress="handleKeyPress" />
             </div>
           </div>
@@ -238,7 +238,7 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
           <div class="text-white/70 text-xs">La bonne reponse :</div>
           <div class="text-yellow-300 text-lg sm:text-xl font-bold tracking-widest">{{ answer.toUpperCase() }}</div>
         </div>
-        <div class="flex gap-8 px-8 py-4 bg-white/5 rounded-xl w-full justify-center">
+        <div class="flex flex-wrap gap-6 px-4 sm:px-8 py-4 bg-white/5 rounded-xl w-full justify-center">
           <div class="flex flex-col items-center gap-2">
             <span class="text-2xl font-bold text-white">{{ guesses.length }}</span>
             <span class="text-sm text-white/70 uppercase tracking-wide">Essais</span>

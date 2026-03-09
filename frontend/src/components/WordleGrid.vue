@@ -107,10 +107,11 @@ const gridRows = computed(() => {
 
 <style scoped>
 .wordle-grid {
+  --cell-size: clamp(2.35rem, min(4.8vw, 6.3vh), 3.5rem);
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 1rem;
+  gap: clamp(0.25rem, 0.6vw, 0.5rem);
+  padding: clamp(0.45rem, 1vw, 1rem);
 }
 
 .grid-row {
@@ -120,14 +121,14 @@ const gridRows = computed(() => {
 }
 
 .grid-cell {
-  width: 3.5rem;
-  height: 3.5rem;
+  width: var(--cell-size);
+  height: var(--cell-size);
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
+  font-size: clamp(1.15rem, 2.8vw, 2rem);
   font-weight: 700;
   color: white;
   text-transform: uppercase;
@@ -178,11 +179,10 @@ const gridRows = computed(() => {
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 720px) {
   .grid-cell {
-    width: 2.5rem;
-    height: 2.5rem;
-    font-size: 1.5rem;
+    --cell-size: clamp(2rem, 8vw, 2.5rem);
+    font-size: clamp(1rem, 4.8vw, 1.5rem);
   }
   
   .grid-row {

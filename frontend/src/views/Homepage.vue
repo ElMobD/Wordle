@@ -40,7 +40,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="relative flex flex-col min-h-screen w-full">
+  <div class="relative flex flex-col min-h-[100dvh] w-full overflow-y-auto">
     <!-- Couche d'atténuation du gradient -->
     <div class="fixed inset-0 bg-white/5 pointer-events-none"></div>
 
@@ -55,17 +55,17 @@ onMounted(async () => {
     />
 
     <!-- Contenu principal -->
-    <main class="relative flex-1 flex items-center justify-center p-8">
-      <div class="flex flex-col gap-6 items-center">
+    <main class="relative flex-1 flex items-center justify-center px-4 py-6 sm:px-6 lg:px-8 xl:px-12">
+      <div class="flex flex-col gap-4 sm:gap-6 items-center w-full max-w-[760px]">
         <button 
           @click="router.push('/daily-word')"
-          class="px-20 py-12 bg-white/15 backdrop-blur-2xl border border-white/25 rounded-[28px] text-white text-5xl font-bold cursor-pointer transition-all duration-200 shadow-[0_20px_60px_rgba(0,0,0,0.15),_inset_0_1px_0_rgba(255,255,255,0.3)] hover:bg-white/25 hover:scale-105 active:scale-95"
+          class="w-full px-8 sm:px-12 lg:px-16 py-7 sm:py-9 lg:py-11 bg-white/15 backdrop-blur-2xl border border-white/25 rounded-[24px] sm:rounded-[28px] text-white text-3xl sm:text-4xl xl:text-5xl font-bold cursor-pointer transition-all duration-200 shadow-[0_20px_60px_rgba(0,0,0,0.15),_inset_0_1px_0_rgba(255,255,255,0.3)] hover:bg-white/25 hover:scale-[1.02] active:scale-95"
         >
           Mot du jour
         </button>
         <button 
           @click="router.push('/multiplayer')"
-          class="px-16 py-10 bg-white/10 backdrop-blur-2xl border border-white/25 rounded-[28px] text-white text-4xl font-bold cursor-pointer transition-all duration-200 shadow-[0_20px_60px_rgba(0,0,0,0.15),_inset_0_1px_0_rgba(255,255,255,0.3)] hover:bg-white/20 hover:scale-105 active:scale-95"
+          class="w-full px-7 sm:px-10 lg:px-12 py-6 sm:py-8 lg:py-10 bg-white/10 backdrop-blur-2xl border border-white/25 rounded-[24px] sm:rounded-[28px] text-white text-2xl sm:text-3xl xl:text-4xl font-bold cursor-pointer transition-all duration-200 shadow-[0_20px_60px_rgba(0,0,0,0.15),_inset_0_1px_0_rgba(255,255,255,0.3)] hover:bg-white/20 hover:scale-[1.02] active:scale-95"
         >
           Multijoueur
         </button>

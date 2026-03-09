@@ -156,7 +156,7 @@ const joinSession = () => {
 </script>
 
 <template>
-      <div class="relative flex flex-col min-h-screen w-full">
+      <div class="relative flex flex-col min-h-[100dvh] w-full overflow-y-auto">
         <div class="fixed inset-0 bg-white/5 pointer-events-none z-0"></div>
         <Header 
           title="MULTIJOUEUR"
@@ -166,15 +166,15 @@ const joinSession = () => {
           @contact="goToContact"
           @profile="goToProfile"
         />
-        <main class="relative flex-1 flex items-center justify-center p-8">
-          <div class="flex flex-col gap-8 items-center w-full max-w-md">
+        <main class="relative flex-1 flex items-start xl:items-center justify-center px-4 py-6 sm:px-6 lg:px-8 overflow-y-auto">
+          <div class="flex flex-col gap-5 sm:gap-7 items-center w-full max-w-lg">
             <!-- Menu principal -->
             <div v-if="mode === 'menu'" class="flex flex-col gap-6 w-full">
-              <button @click="showCreateForm" class="rounded-xl px-8 py-5 text-xl font-bold bg-white/10 text-white border border-white/20 hover:bg-white/20 transition">Créer une partie</button>
-              <button @click="showJoinForm" class="rounded-xl px-8 py-5 text-xl font-bold bg-white/5 text-white/80 border border-white/20 hover:bg-white/10 transition">Rejoindre une partie</button>
+              <button @click="showCreateForm" class="w-full rounded-xl px-6 sm:px-8 py-4 sm:py-5 text-lg sm:text-xl font-bold bg-white/10 text-white border border-white/20 hover:bg-white/20 transition">Créer une partie</button>
+              <button @click="showJoinForm" class="w-full rounded-xl px-6 sm:px-8 py-4 sm:py-5 text-lg sm:text-xl font-bold bg-white/5 text-white/80 border border-white/20 hover:bg-white/10 transition">Rejoindre une partie</button>
             </div>
             <!-- Formulaire créer -->
-            <div v-else-if="mode === 'create'" class="w-full bg-white/5 rounded-xl p-6 flex flex-col gap-4 border border-white/10">
+            <div v-else-if="mode === 'create'" class="w-full bg-white/5 rounded-xl p-4 sm:p-6 flex flex-col gap-4 border border-white/10">
               <h2 class="text-2xl font-bold text-white mb-2">Créer une partie</h2>
               <p class="text-white/80 mb-4">Configuration de la session multijoueur</p>
               <div class="flex flex-col gap-4">
@@ -197,7 +197,7 @@ const joinSession = () => {
               </div>
             </div>
             <!-- Formulaire rejoindre -->
-            <div v-else-if="mode === 'join'" class="w-full bg-white/5 rounded-xl p-6 flex flex-col gap-4 border border-white/10">
+            <div v-else-if="mode === 'join'" class="w-full bg-white/5 rounded-xl p-4 sm:p-6 flex flex-col gap-4 border border-white/10">
               <h2 class="text-2xl font-bold text-white mb-2">Rejoindre une partie</h2>
               <p class="text-white/80 mb-4">Entrez le code de la session</p>
               <input 

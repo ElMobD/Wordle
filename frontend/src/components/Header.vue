@@ -96,7 +96,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
+  padding: clamp(0.85rem, 1.2vw, 1.5rem) clamp(0.9rem, 2vw, 2rem);
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
@@ -114,17 +114,20 @@ onMounted(() => {
   left: 50%;
   transform: translateX(-50%);
   color: white;
-  font-size: 1.875rem;
+  font-size: clamp(1.05rem, 1.6vw, 1.875rem);
   font-weight: 700;
   margin: 0;
   letter-spacing: 0.05em;
   white-space: nowrap;
+  max-width: 50vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
   pointer-events: none;
 }
 
 .header-right {
   display: flex;
-  gap: 1rem;
+  gap: clamp(0.35rem, 0.8vw, 1rem);
   align-items: center;
   z-index: 1;
 }
@@ -133,9 +136,9 @@ onMounted(() => {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
-  padding: 0.75rem;
+  padding: clamp(0.45rem, 0.8vw, 0.75rem);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -155,8 +158,8 @@ onMounted(() => {
   border-radius: 50%;
   cursor: pointer;
   padding: 0;
-  width: 44px;
-  height: 44px;
+  width: clamp(34px, 2.2vw, 44px);
+  height: clamp(34px, 2.2vw, 44px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -178,34 +181,35 @@ onMounted(() => {
 .profile-placeholder {
   color: white;
   font-weight: 700;
-  font-size: 1.2rem;
+  font-size: clamp(0.95rem, 1.2vw, 1.2rem);
 }
 
 .icon {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: clamp(1rem, 1.1vw, 1.25rem);
+  height: clamp(1rem, 1.1vw, 1.25rem);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 960px) {
   .glass-header {
-    padding: 1rem 1.25rem;
+    padding: 0.8rem 0.9rem;
   }
 
   .header-title {
-    font-size: 1.25rem;
-  }
-
-  .header-right {
-    gap: 0.5rem;
+    max-width: 40vw;
   }
 
   .icon-button {
-    padding: 0.5rem;
+    padding: 0.42rem;
+  }
+}
+
+@media (max-width: 680px) {
+  .header-title {
+    max-width: 34vw;
   }
 
-  .profile-button {
-    width: 36px;
-    height: 36px;
+  .header-right {
+    gap: 0.3rem;
   }
 }
 </style>

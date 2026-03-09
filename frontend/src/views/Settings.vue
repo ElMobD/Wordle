@@ -99,7 +99,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="relative flex flex-col h-full w-full overflow-hidden">
+  <div class="relative flex flex-col min-h-[100dvh] w-full overflow-y-auto">
     <!-- Couche d'atténuation du gradient -->
     <div class="fixed inset-0 bg-white/5 pointer-events-none"></div>
 
@@ -115,10 +115,10 @@ onMounted(async () => {
 
     <!-- Contenu principal -->
     <div class="flex-1 flex flex-col">
-      <div class="flex-1 overflow-y-auto max-h-[calc(100vh-5rem)] min-h-0">
-        <div class="max-w-4xl mx-auto p-8 sm:p-6">
+      <div class="flex-1 overflow-y-auto max-h-[calc(100dvh-4.5rem)] min-h-0">
+        <div class="max-w-5xl mx-auto px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         <!-- Tabs -->
-        <div class="flex gap-4 mb-8 pb-2 border-b border-white/15 sticky top-0 backdrop-blur-xl z-10">
+        <div class="flex gap-2 sm:gap-4 mb-6 sm:mb-8 pb-2 border-b border-white/15 sticky top-0 backdrop-blur-xl z-10 overflow-x-auto">
           <button 
             @click="activeTab = 'settings'"
             :class="['px-6 py-3 text-base font-semibold border-b-2 transition-all duration-200', activeTab === 'settings' ? 'text-white border-white' : 'text-white/50 border-transparent hover:text-white/80']"
@@ -135,7 +135,7 @@ onMounted(async () => {
 
         <!-- Settings Tab -->
         <div v-if="activeTab === 'settings'" class="flex flex-col gap-6">
-          <div class="p-8 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.1),_inset_0_1px_0_rgba(255,255,255,0.2)]">
+          <div class="p-4 sm:p-6 lg:p-8 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.1),_inset_0_1px_0_rgba(255,255,255,0.2)]">
             <h2 class="text-2xl font-bold text-white mb-6">Apparence</h2>
             <div class="flex flex-col gap-6">
               <div class="flex items-center justify-between py-2">
@@ -158,7 +158,7 @@ onMounted(async () => {
             </div>
           </div>
 
-          <div class="p-8 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.1),_inset_0_1px_0_rgba(255,255,255,0.2)]">
+          <div class="p-4 sm:p-6 lg:p-8 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.1),_inset_0_1px_0_rgba(255,255,255,0.2)]">
             <h2 class="text-2xl font-bold text-white mb-6">Paramètres de jeu</h2>
             <div class="flex flex-col gap-6">
               <div class="flex items-center justify-between">
@@ -172,7 +172,7 @@ onMounted(async () => {
             </div>
           </div>
 
-          <div class="p-8 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.1),_inset_0_1px_0_rgba(255,255,255,0.2)]">
+          <div class="p-4 sm:p-6 lg:p-8 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.1),_inset_0_1px_0_rgba(255,255,255,0.2)]">
             <h2 class="text-2xl font-bold text-white mb-4">À propos</h2>
             <p class="text-white/90 text-base">Wordle+ v1.0.0</p>
             <p class="text-white/60 text-sm mt-2">Un jeu de mots amusant et addictif</p>
@@ -181,7 +181,7 @@ onMounted(async () => {
 
         <!-- User Tab -->
         <div v-if="activeTab === 'user'" class="flex flex-col gap-6">
-          <div class="p-8 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.1),_inset_0_1px_0_rgba(255,255,255,0.2)]">
+          <div class="p-4 sm:p-6 lg:p-8 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.1),_inset_0_1px_0_rgba(255,255,255,0.2)]">
             <div v-if="loading" class="text-white text-center p-8">Chargement...</div>
             <div v-if="error" class="p-4 bg-red-600/15 backdrop-blur-xl border border-red-600/30 rounded-lg text-white/95 text-sm">{{ error }}</div>
             <div v-if="userProfile && !loading" class="flex flex-col gap-6">
@@ -219,7 +219,7 @@ onMounted(async () => {
               <div class="flex flex-col gap-2">
                 <label class="text-white/60 text-sm font-medium">Statistiques</label>
                 <div v-if="loadingStats" class="text-white/60 text-sm text-center py-4">Chargement des statistiques...</div>
-                <div v-else class="grid grid-cols-3 gap-4 mt-2">
+                <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
                   <div class="p-5 bg-white/10 backdrop-blur-xl border border-white/15 rounded-xl text-center">
                     <p class="text-white/60 text-xs mb-2">Parties jouées</p>
                     <p class="text-white text-2xl font-bold">{{ dailyStats?.totalPlayed ?? 0 }}</p>
@@ -233,7 +233,7 @@ onMounted(async () => {
                     <p class="text-white text-2xl font-bold">{{ calculateWinRate() }}</p>
                   </div>
                 </div>
-                <div v-if="!loadingStats" class="grid grid-cols-2 gap-4 mt-2">
+                <div v-if="!loadingStats" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                   <div class="p-5 bg-white/10 backdrop-blur-xl border border-white/15 rounded-xl text-center">
                     <p class="text-white/60 text-xs mb-2">Série actuelle</p>
                     <p class="text-white text-2xl font-bold">{{ dailyStats?.currentStreak ?? 0 }}</p>

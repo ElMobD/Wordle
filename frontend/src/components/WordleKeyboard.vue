@@ -94,10 +94,12 @@ const getKeyStatus = (key: string) => {
 
 <style scoped>
 .keyboard {
+  --key-height: clamp(2.5rem, min(5.4vw, 6.2vh), 3.5rem);
+  --key-min-width: clamp(1.85rem, 3.9vw, 2.5rem);
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 1rem;
+  gap: clamp(0.25rem, 0.7vw, 0.5rem);
+  padding: clamp(0.45rem, 1vw, 1rem);
   width: 100%;
   max-width: 600px;
 }
@@ -109,15 +111,15 @@ const getKeyStatus = (key: string) => {
 }
 
 .key {
-  min-width: 2.5rem;
-  height: 3.5rem;
-  padding: 0 0.5rem;
+  min-width: var(--key-min-width);
+  height: var(--key-height);
+  padding: 0 clamp(0.2rem, 0.8vw, 0.5rem);
   background: rgba(55, 65, 81, 0.8);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(107, 114, 128, 0.6);
   border-radius: 6px;
   color: white;
-  font-size: 0.875rem;
+  font-size: clamp(0.66rem, 1.2vw, 0.875rem);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
@@ -143,8 +145,8 @@ const getKeyStatus = (key: string) => {
 }
 
 .key-special {
-  min-width: 4rem;
-  font-size: 0.75rem;
+  min-width: clamp(2.5rem, 5.8vw, 4rem);
+  font-size: clamp(0.58rem, 1vw, 0.75rem);
 }
 
 .key-correct {

@@ -102,14 +102,14 @@ watch(isOpen, (open) => {
 <template>
   <!-- Bouton flottant pour ouvrir/fermer le chat -->
   <button
-    class="fixed right-8 bottom-8 z-60 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg w-12 h-12 flex items-center justify-center transition-all"
+    class="fixed right-3 sm:right-6 xl:right-8 bottom-3 sm:bottom-6 xl:bottom-8 z-60 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center transition-all"
     @click="isOpen = !isOpen"
     aria-label="Ouvrir/fermer le chat"
     v-if="!isOpen"
   >
     💬
   </button>
-  <div v-if="isOpen" class="absolute right-8 bottom-8 max-w-sm w-full flex flex-col bg-white/10 border border-white/20 rounded-2xl shadow-2xl backdrop-blur-xl z-50">
+  <div v-if="isOpen" class="fixed right-3 sm:right-6 xl:right-8 bottom-3 sm:bottom-6 xl:bottom-8 max-w-[92vw] sm:max-w-sm w-full flex flex-col bg-white/10 border border-white/20 rounded-2xl shadow-2xl backdrop-blur-xl z-50">
     <!-- Bouton pour fermer le chat -->
     <button
       class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-800 text-white rounded-full w-8 h-8 flex items-center justify-center z-10"

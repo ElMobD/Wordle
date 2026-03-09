@@ -50,8 +50,8 @@ const loginWithGoogle = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  padding: 2rem;
+  min-height: 100dvh;
+  padding: clamp(1rem, 2.2vw, 2rem);
 }
 
 /* Couche d'atténuation pour adoucir le gradient */
@@ -66,8 +66,8 @@ const loginWithGoogle = () => {
 .glass-container {
   position: relative;
   width: 100%;
-  max-width: 400px;
-  padding: 4rem 2.5rem;
+  max-width: min(440px, 92vw);
+  padding: clamp(2rem, 4vw, 4rem) clamp(1.25rem, 2.8vw, 2.5rem);
   text-align: center;
   background: rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(60px);
@@ -81,11 +81,11 @@ const loginWithGoogle = () => {
 
 /* Logo minimaliste */
 .logo-title {
-  font-size: 3.5rem;
+  font-size: clamp(2rem, 5.5vw, 3.5rem);
   font-weight: 700;
   color: white;
   letter-spacing: 0.02em;
-  margin-bottom: 3rem;
+  margin-bottom: clamp(1.6rem, 3vw, 3rem);
 }
 
 /* Message d'erreur épuré */

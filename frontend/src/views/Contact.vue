@@ -459,7 +459,7 @@ onMounted(async () => {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
 }
 
@@ -468,7 +468,7 @@ onMounted(async () => {
   flex: 1;
   display: flex;
   justify-content: center;
-  padding: 2rem;
+  padding: clamp(0.8rem, 1.8vw, 2rem);
   overflow-y: auto;
 }
 
@@ -477,24 +477,26 @@ onMounted(async () => {
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 20px;
-  padding: 2rem;
-  max-width: 800px;
+  padding: clamp(1rem, 2vw, 2rem);
+  max-width: min(980px, 100%);
   width: 100%;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 2rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 0.3rem;
 }
 
 .tab {
   background: transparent;
   border: none;
   color: rgba(255, 255, 255, 0.7);
-  padding: 1rem 1.5rem;
+  padding: 0.7rem 1rem;
   cursor: pointer;
   font-size: 1rem;
   font-weight: 600;
@@ -582,6 +584,8 @@ onMounted(async () => {
   padding: 1rem;
   display: flex;
   justify-content: space-between;
+  gap: 0.8rem;
+  flex-wrap: wrap;
   align-items: center;
 }
 
@@ -625,6 +629,7 @@ onMounted(async () => {
 .action-buttons {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .add-button,
@@ -666,6 +671,7 @@ onMounted(async () => {
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .status-badge.pending {

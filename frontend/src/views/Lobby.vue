@@ -167,7 +167,7 @@ const quitLobby = () => {
 
 
 <template>
-  <div v-if="!$route.params.gameId && !$route.path.includes('/leaderboard')" class="relative flex flex-col min-h-screen w-full">
+  <div v-if="!$route.params.gameId && !$route.path.includes('/leaderboard')" class="relative flex flex-col min-h-[100dvh] w-full overflow-y-auto">
     <Header 
       title="LOBBY"
       @home="goHome"
@@ -176,12 +176,12 @@ const quitLobby = () => {
       @contact="goToContact"
       @profile="goToProfile"
     />
-    <main class="flex flex-1 items-center justify-center p-4 md:p-8">
-      <div class="w-full max-w-xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl backdrop-blur-xl flex flex-col items-center px-4 py-8 md:px-8 md:py-12">
+    <main class="flex flex-1 items-start xl:items-center justify-center px-3 py-4 sm:px-4 lg:px-8 overflow-y-auto">
+      <div class="w-full max-w-2xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl backdrop-blur-xl flex flex-col items-center px-4 py-6 md:px-8 md:py-10">
         <header class="w-full flex flex-col items-center mb-6">
           <h1 class="text-3xl font-extrabold text-white mb-1 tracking-wide text-center">Lobby de la Session</h1>
           <p class="text-teal-200 text-base text-center mb-6">En attente des autres joueurs pour débuter la partie.</p>
-          <div class="flex items-center justify-center gap-2 mb-6">
+          <div class="flex flex-wrap items-center justify-center gap-2 mb-6">
             <span class="text-teal-200 font-bold text-base">CODE :</span>
             <code class="font-mono bg-black/30 px-4 py-2 rounded-lg text-cyan-300 font-bold tracking-widest text-lg shadow-md">{{ sessionCode }}</code>
             <button @click="copySessionCode" class="bg-gradient-to-tr from-green-500 to-green-800 text-white rounded-md px-3 py-1.5 font-semibold text-base shadow hover:scale-105 transition-transform">
@@ -199,7 +199,7 @@ const quitLobby = () => {
               <transition-group name="fade" tag="div" class="flex flex-wrap gap-4 justify-center w-full">
                 <div v-for="player in players" :key="player.id"
                   :class="[
-                    'flex flex-col items-center min-w-[180px] max-w-[240px] p-4 rounded-xl shadow-lg border transition-transform duration-200',
+                    'flex flex-col items-center min-w-[160px] max-w-[220px] p-3 sm:p-4 rounded-xl shadow-lg border transition-transform duration-200',
                     'bg-white/20 border-green-300/20 hover:scale-105',
                     String(player.id) === String(userIdCookie) ? 'border-cyan-400 ring-2 ring-cyan-300/30' : 'border-green-300/20'
                   ]">

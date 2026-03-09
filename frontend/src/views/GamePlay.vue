@@ -338,7 +338,7 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
 </script>
 
 <template>
-  <div class="relative flex flex-col min-h-screen w-full">
+  <div class="relative flex flex-col min-h-[100dvh] w-full overflow-y-auto">
     <div class="fixed inset-0 bg-white/5 pointer-events-none z-0"></div>
     <Header
       title="Partie en cours"
@@ -419,7 +419,7 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
       </div>
     </Transition>
 
-    <div v-if="!loading" class="fixed top-24 right-3 z-30 w-64 hidden lg:block">
+    <div v-if="!loading" class="fixed top-24 right-3 z-30 w-64 hidden xl:block">
       <div class="rounded-xl border border-white/20 bg-slate-900/60 backdrop-blur-sm p-3">
         <div class="text-white font-semibold mb-2">Joueurs ({{ playersState.length }})</div>
         <div class="space-y-2 max-h-[45vh] overflow-y-auto pr-1">
@@ -446,13 +446,13 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
       </div>
     </div>
     
-    <main class="relative z-5 flex flex-1 min-h-0 w-full items-center justify-center p-4">
-      <div class="flex flex-col flex-1 min-h-0 w-full max-w-xl h-full gap-4 justify-between items-center">
+    <main class="relative z-5 flex flex-1 min-h-0 w-full items-start xl:items-center justify-center px-3 py-4 sm:px-4 lg:px-6 overflow-y-auto">
+      <div class="flex flex-col flex-1 min-h-0 w-full max-w-xl h-auto xl:h-full gap-3 sm:gap-4 justify-start xl:justify-between items-center">
         <div v-if="loading" class="relative z-5 flex items-center justify-center flex-1 text-white w-full">Chargement...</div>
         <template v-else>
           <!-- Affichage des settings et du timer -->
           <div class="w-full flex flex-col items-center gap-2 mb-4">
-            <div class="flex gap-6 text-white text-lg font-semibold">
+            <div class="flex flex-wrap justify-center gap-2 sm:gap-4 text-white text-sm sm:text-base lg:text-lg font-semibold">
               <div class="bg-white/10 px-4 py-2 rounded-lg">
                 Round: <span class="text-blue-400">{{ currentRound }}/{{ rounds }}</span>
               </div>
@@ -467,13 +467,13 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
 
           <div class="flex-1 min-h-0 w-full flex items-center justify-center">
             <div class="w-full flex justify-center">
-              <div class="max-w-[320px] w-full sm:max-w-[360px]">
+              <div class="max-w-[300px] w-full sm:max-w-[340px] xl:max-w-[360px]">
                 <WordleGrid :guesses="guesses" :currentGuess="currentGuess" :maxGuesses="maxGuesses" :wordLength="wordLength" />
               </div>
             </div>
           </div>
           <div class="w-full flex justify-center">
-            <div class="max-w-[340px] w-full sm:max-w-[380px]">
+            <div class="max-w-[320px] w-full sm:max-w-[360px] xl:max-w-[380px]">
               <WordleKeyboard :guesses="guesses" :disabled="roundFinished || timeRemaining <= 0 || gameStatus !== 'IN_PROGRESS'" @keyPress="handleKeyPress" />
             </div>
           </div>

@@ -70,7 +70,7 @@ const getRankEmoji = (index: number) => {
 </script>
 
 <template>
-  <div class="relative flex flex-col min-h-screen w-full">
+  <div class="relative flex flex-col min-h-[100dvh] w-full overflow-y-auto">
     <div class="fixed inset-0 bg-white/5 pointer-events-none z-0"></div>
     <Header 
       title="CLASSEMENT"
@@ -80,10 +80,10 @@ const getRankEmoji = (index: number) => {
       @profile="goToProfile"
     />
     
-    <main class="relative flex-1 flex items-center justify-center p-4 md:p-8">
-      <div class="w-full max-w-2xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl backdrop-blur-xl flex flex-col items-center px-4 py-8 md:px-8 md:py-12">
+    <main class="relative flex-1 flex items-start xl:items-center justify-center px-3 py-4 sm:px-4 md:px-6 lg:px-8 overflow-y-auto">
+      <div class="w-full max-w-3xl bg-white/10 border border-white/20 rounded-2xl shadow-2xl backdrop-blur-xl flex flex-col items-center px-4 py-6 md:px-8 md:py-10">
         <header class="w-full flex flex-col items-center mb-8">
-          <h1 class="text-4xl font-extrabold text-white mb-2 tracking-wide text-center">🏆 Classement Final</h1>
+          <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white mb-2 tracking-wide text-center">🏆 Classement Final</h1>
           <p class="text-teal-200 text-base text-center">Session terminée - Résultats de la partie</p>
         </header>
 
