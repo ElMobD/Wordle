@@ -12,7 +12,9 @@ const { logout } = useAuth()
 const { theme, toggleTheme, isDark } = useTheme()
 const activeTab = ref<'settings' | 'user'>('settings')
 const userProfile = ref<any>(null)
+const dailyStats = ref<any>(null)
 const loading = ref(false)
+const loadingStats = ref(false)
 const error = ref<string | null>(null)
 const isHelpModalOpen = ref(false)
 
@@ -47,6 +49,25 @@ const handleLogout = () => {
   router.push('/login')
 }
 
+const fetchDailyStats = async () => {
+  loadingStats.value = true
+  try {
+    const response = await authenticatedFetch('http://localhost:8080/api/stats/daily')
+    const data = await response.json()
+    dailyStats.value = data
+  } catch (err) {
+    console.error('Error fetching daily stats:', err)
+  } finally {
+    loadingStats.value = false
+  }
+}
+
+const calculateWinRate = () => {
+  if (!dailyStats.value || dailyStats.value.totalPlayed === 0) return '0%'
+  const rate = (dailyStats.value.totalWon / dailyStats.value.totalPlayed) * 100
+  return `${Math.round(rate)}%`
+}
+
 onMounted(async () => {
   console.log('Settings mounted')
   
@@ -65,6 +86,9 @@ onMounted(async () => {
     const data = await response.json()
     console.log('User profile data:', data)
     userProfile.value = data
+    
+    // Charger les stats daily
+    await fetchDailyStats()
   } catch (err) {
     console.error('Error fetching profile:', err)
     error.value = err instanceof Error ? err.message : 'Erreur lors du chargement du profil'
@@ -194,18 +218,29 @@ onMounted(async () => {
               </div>-->
               <div class="flex flex-col gap-2">
                 <label class="text-white/60 text-sm font-medium">Statistiques</label>
-                <div class="grid grid-cols-3 gap-4 mt-2">
+                <div v-if="loadingStats" class="text-white/60 text-sm text-center py-4">Chargement des statistiques...</div>
+                <div v-else class="grid grid-cols-3 gap-4 mt-2">
                   <div class="p-5 bg-white/10 backdrop-blur-xl border border-white/15 rounded-xl text-center">
                     <p class="text-white/60 text-xs mb-2">Parties jouées</p>
-                    <p class="text-white text-2xl font-bold">0</p>
+                    <p class="text-white text-2xl font-bold">{{ dailyStats?.totalPlayed ?? 0 }}</p>
                   </div>
                   <div class="p-5 bg-white/10 backdrop-blur-xl border border-white/15 rounded-xl text-center">
                     <p class="text-white/60 text-xs mb-2">Victoires</p>
-                    <p class="text-white text-2xl font-bold">0</p>
+                    <p class="text-white text-2xl font-bold">{{ dailyStats?.totalWon ?? 0 }}</p>
                   </div>
                   <div class="p-5 bg-white/10 backdrop-blur-xl border border-white/15 rounded-xl text-center">
                     <p class="text-white/60 text-xs mb-2">Taux</p>
-                    <p class="text-white text-2xl font-bold">0%</p>
+                    <p class="text-white text-2xl font-bold">{{ calculateWinRate() }}</p>
+                  </div>
+                </div>
+                <div v-if="!loadingStats" class="grid grid-cols-2 gap-4 mt-2">
+                  <div class="p-5 bg-white/10 backdrop-blur-xl border border-white/15 rounded-xl text-center">
+                    <p class="text-white/60 text-xs mb-2">Série actuelle</p>
+                    <p class="text-white text-2xl font-bold">{{ dailyStats?.currentStreak ?? 0 }}</p>
+                  </div>
+                  <div class="p-5 bg-white/10 backdrop-blur-xl border border-white/15 rounded-xl text-center">
+                    <p class="text-white/60 text-xs mb-2">Meilleure série</p>
+                    <p class="text-white text-2xl font-bold">{{ dailyStats?.maxStreak ?? 0 }}</p>
                   </div>
                 </div>
               </div>
