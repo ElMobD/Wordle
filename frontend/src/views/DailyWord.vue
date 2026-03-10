@@ -129,8 +129,11 @@ const goToProfile = () => {
 }
 
 const handleKeyPress = (key: string) => {
+  // Bloquer toute saisie après fin de partie
+  if (gameStatus.value !== 'IN_PROGRESS') return
+
   if (key === 'ENTER') {
-    if (currentGuess.value.length === wordLength && gameStatus.value === 'IN_PROGRESS') {
+    if (currentGuess.value.length === wordLength) {
       submitWord(currentGuess.value)
       currentGuess.value = ''
     }
@@ -214,7 +217,7 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
           </div>
           <div class="w-full flex justify-center">
             <div class="max-w-[320px] w-full sm:max-w-[360px] xl:max-w-[380px]">
-              <WordleKeyboard :guesses="guesses" @keyPress="handleKeyPress" />
+              <WordleKeyboard :guesses="guesses" :disabled="gameStatus !== 'IN_PROGRESS'" @keyPress="handleKeyPress" />
             </div>
           </div>
         </template>
