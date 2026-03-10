@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { useTheme } from '../composables/useTheme'
@@ -19,6 +19,8 @@ const loadingStats = ref(false)
 const error = ref<string | null>(null)
 const isHelpModalOpen = ref(false)
 const MIN_LOADING_MS = 1000
+let previousHtmlOverflow = ''
+let previousBodyOverflow = ''
 
 const goHome = () => {
   router.push('/homepage')
@@ -71,6 +73,11 @@ const calculateWinRate = () => {
 }
 
 onMounted(async () => {
+  previousHtmlOverflow = document.documentElement.style.overflow
+  previousBodyOverflow = document.body.style.overflow
+  document.documentElement.style.overflow = 'hidden'
+  document.body.style.overflow = 'hidden'
+
   const startedAt = Date.now()
   console.log('Settings mounted')
   
@@ -103,10 +110,15 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+onUnmounted(() => {
+  document.documentElement.style.overflow = previousHtmlOverflow
+  document.body.style.overflow = previousBodyOverflow
+})
 </script>
 
 <template>
-  <div class="relative flex flex-col min-h-[100dvh] w-full overflow-y-auto">
+  <div class="relative flex flex-col h-[100dvh] w-full overflow-hidden">
     <!-- Couche d'atténuation du gradient -->
     <div class="fixed inset-0 bg-white/5 pointer-events-none"></div>
 
@@ -123,11 +135,11 @@ onMounted(async () => {
     <LoadingScreen v-if="loading" message="Chargement des parametres..." />
 
     <!-- Contenu principal -->
-    <div class="flex-1 flex flex-col">
-      <div class="flex-1 overflow-y-auto max-h-[calc(100dvh-4.5rem)] min-h-0">
+    <div class="flex-1 min-h-0 flex flex-col">
+      <div class="flex-1 min-h-0 overflow-y-auto hide-scrollbar">
         <div class="max-w-5xl mx-auto px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         <!-- Tabs -->
-        <div class="flex gap-2 sm:gap-4 mb-6 sm:mb-8 pb-2 border-b border-white/15 sticky top-0 backdrop-blur-xl z-10 overflow-x-auto">
+        <div class="flex gap-2 sm:gap-4 mb-6 sm:mb-8 pb-2 border-b border-white/15 sticky top-0 backdrop-blur-xl z-10 overflow-x-auto hide-scrollbar">
           <button 
             @click="activeTab = 'settings'"
             :class="['px-6 py-3 text-base font-semibold border-b-2 transition-all duration-200', activeTab === 'settings' ? 'text-white border-white' : 'text-white/50 border-transparent hover:text-white/80']"
@@ -300,4 +312,17 @@ onMounted(async () => {
       </div>
     </Modal>
 </template>
+
+<style scoped>
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+</style>
 

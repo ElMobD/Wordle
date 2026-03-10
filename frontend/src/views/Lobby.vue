@@ -17,7 +17,7 @@ let lobbyInfoReceived = false;
 let retryCount = 0;
 const maxRetries = 5;
 const isRouteLoading = ref(true)
-const MIN_LOADING_MS = 1500
+const MIN_LOADING_MS = 1000
 let navigationToken = 0
 watch(
   () => route.fullPath,
