@@ -1,11 +1,29 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { onMounted } from 'vue'
-import { ref } from 'vue'
+import { ref , watch} from 'vue'
 import Header from '../components/Header.vue'
 import Modal from '../components/Modal.vue'
 import { useAuth } from '../composables/useAuth'
+import LoadingScreen from '../components/LoadingScreen.vue'
 
+const route = useRoute()
+const isRouteLoading = ref(true)
+const MIN_LOADING_MS = 1500
+let navigationToken = 0
+watch(
+  () => route.fullPath,
+  async () => {
+    const currentToken = ++navigationToken
+    isRouteLoading.value = true
+    await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_MS))
+    if (currentToken === navigationToken) {
+      isRouteLoading.value = false
+    }
+  },
+  { immediate: true }
+)
 
 const { checkAuth } = useAuth()
 const router = useRouter()
@@ -97,4 +115,5 @@ onMounted(async () => {
       </div>
     </Modal>
   </div>
+  <LoadingScreen v-if="isRouteLoading" message="Chargement de l'application..." />
 </template>

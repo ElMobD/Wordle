@@ -7,12 +7,38 @@
   --bg-gradient-start: #3100F6;
   --bg-gradient-end: #F50000;
   --overlay-color: rgba(255, 255, 255, 0.03);
+
+  --loading-orb-a: rgba(49, 0, 246, 0.45);
+  --loading-orb-b: rgba(245, 0, 0, 0.4);
+  --loading-shell-start: rgba(18, 15, 48, 0.86);
+  --loading-shell-end: rgba(42, 10, 44, 0.72);
+  --loading-text: #f8fafc;
+  --loading-subtext: rgba(255, 228, 240, 0.9);
+  --loading-progress: linear-gradient(90deg, #3100f6, #7c3aed, #f50000);
+  --loading-tile-1: linear-gradient(160deg, #4f46e5, #3100f6);
+  --loading-tile-2: linear-gradient(160deg, #6d28d9, #4f46e5);
+  --loading-tile-3: linear-gradient(160deg, #7c3aed, #5b21b6);
+  --loading-tile-4: linear-gradient(160deg, #9f1239, #be123c);
+  --loading-tile-5: linear-gradient(160deg, #f50000, #b91c1c);
 }
 
 :root[data-theme="dark"] {
   --bg-gradient-start: #0F172A;
   --bg-gradient-end: #1E293B;
   --overlay-color: rgba(0, 0, 0, 0.2);
+
+  --loading-orb-a: rgba(15, 23, 42, 0.58);
+  --loading-orb-b: rgba(51, 65, 85, 0.5);
+  --loading-shell-start: rgba(15, 23, 42, 0.9);
+  --loading-shell-end: rgba(30, 41, 59, 0.82);
+  --loading-text: #e2e8f0;
+  --loading-subtext: rgba(203, 213, 225, 0.9);
+  --loading-progress: linear-gradient(90deg, #334155, #475569, #64748b);
+  --loading-tile-1: linear-gradient(160deg, #334155, #1e293b);
+  --loading-tile-2: linear-gradient(160deg, #475569, #334155);
+  --loading-tile-3: linear-gradient(160deg, #64748b, #475569);
+  --loading-tile-4: linear-gradient(160deg, #0f172a, #1e293b);
+  --loading-tile-5: linear-gradient(160deg, #1e293b, #0f172a);
 }
 
 /* Fond dégradé global fixe pour toute l'application */

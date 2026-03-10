@@ -1,16 +1,35 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { authenticatedFetch } from '../utils/api'
 import Header from '../components/Header.vue'
 import Modal from '../components/Modal.vue'
+import LoadingScreen from '../components/LoadingScreen.vue'
+import { watch } from 'vue'
 
 const router = useRouter()
-
+const route = useRoute()
 const goHome = () => router.push('/homepage')
 const goSettings = () => router.push('/settings')
 const goToContact = () => router.push('/contact')
 const goToProfile = () => router.push('/settings?tab=profil')
+
+
+const isRouteLoading = ref(true)
+const MIN_LOADING_MS = 1500
+let navigationToken = 0
+watch(
+  () => route.fullPath,
+  async () => {
+    const currentToken = ++navigationToken
+    isRouteLoading.value = true
+    await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_MS))
+    if (currentToken === navigationToken) {
+      isRouteLoading.value = false
+    }
+  },
+  { immediate: true }
+)
 
 interface User {
   id: number
@@ -332,7 +351,7 @@ onMounted(async () => {
 
         <!-- Friends List -->
         <div v-if="activeTab === 'friends'" class="list-section">
-          <div v-if="loading" class="loading">Chargement...</div>
+          <LoadingScreen v-if="loading" message="Chargement des amis..." />
           <div v-else-if="friends.length === 0" class="empty-state">
             Aucun ami pour le moment
           </div>
@@ -357,7 +376,7 @@ onMounted(async () => {
 
         <!-- Pending Requests -->
         <div v-if="activeTab === 'requests'" class="list-section">
-          <div v-if="loading" class="loading">Chargement...</div>
+          <LoadingScreen v-if="loading" message="Chargement des demandes..." />
           <div v-else-if="pendingRequests.length === 0" class="empty-state">
             Aucune demande en attente
           </div>
@@ -387,7 +406,7 @@ onMounted(async () => {
 
         <!-- Sent Requests -->
         <div v-if="activeTab === 'sent'" class="list-section">
-          <div v-if="loading" class="loading">Chargement...</div>
+          <LoadingScreen v-if="loading" message="Chargement des demandes..." />
           <div v-else-if="sentRequests.length === 0" class="empty-state">
             Aucune demande envoyée
           </div>
@@ -452,6 +471,7 @@ onMounted(async () => {
       </div>
     </Modal>
   </div>
+  <LoadingScreen v-if="isRouteLoading" message="Chargement de la page Contact..." />
 </template>
 
 <style scoped>

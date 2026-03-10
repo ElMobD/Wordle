@@ -1,6 +1,5 @@
 package com.wordle.backend.service;
 
-import com.wordle.backend.model.Game;
 import com.wordle.backend.model.SessionScore;
 import com.wordle.backend.model.SessionScoreId;
 import com.wordle.backend.repository.SessionScoreRepository;

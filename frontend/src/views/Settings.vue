@@ -6,17 +6,19 @@ import { useTheme } from '../composables/useTheme'
 import { authenticatedFetch } from '../utils/api'
 import Modal from '../components/Modal.vue'
 import Header from '../components/Header.vue'
+import LoadingScreen from '../components/LoadingScreen.vue'
 
 const router = useRouter()
 const { logout } = useAuth()
-const { theme, toggleTheme, isDark } = useTheme()
+const { toggleTheme, isDark } = useTheme()
 const activeTab = ref<'settings' | 'user'>('settings')
 const userProfile = ref<any>(null)
 const dailyStats = ref<any>(null)
-const loading = ref(false)
+const loading = ref(true)
 const loadingStats = ref(false)
 const error = ref<string | null>(null)
 const isHelpModalOpen = ref(false)
+const MIN_LOADING_MS = 1000
 
 const goHome = () => {
   router.push('/homepage')
@@ -69,6 +71,7 @@ const calculateWinRate = () => {
 }
 
 onMounted(async () => {
+  const startedAt = Date.now()
   console.log('Settings mounted')
   
   // Vérifier si on doit ouvrir l'onglet profil
@@ -77,7 +80,6 @@ onMounted(async () => {
     activeTab.value = 'user'
   }
   
-  loading.value = true
   error.value = null
   try {
     console.log('Fetching user profile...')
@@ -93,6 +95,11 @@ onMounted(async () => {
     console.error('Error fetching profile:', err)
     error.value = err instanceof Error ? err.message : 'Erreur lors du chargement du profil'
   } finally {
+    const elapsedMs = Date.now() - startedAt
+    const remainingMs = Math.max(0, MIN_LOADING_MS - elapsedMs)
+    if (remainingMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, remainingMs))
+    }
     loading.value = false
   }
 })
@@ -112,6 +119,8 @@ onMounted(async () => {
       @contact="goToContact"
       @profile="goToProfile"
     />
+
+    <LoadingScreen v-if="loading" message="Chargement des parametres..." />
 
     <!-- Contenu principal -->
     <div class="flex-1 flex flex-col">
@@ -182,7 +191,6 @@ onMounted(async () => {
         <!-- User Tab -->
         <div v-if="activeTab === 'user'" class="flex flex-col gap-6">
           <div class="p-4 sm:p-6 lg:p-8 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.1),_inset_0_1px_0_rgba(255,255,255,0.2)]">
-            <div v-if="loading" class="text-white text-center p-8">Chargement...</div>
             <div v-if="error" class="p-4 bg-red-600/15 backdrop-blur-xl border border-red-600/30 rounded-lg text-white/95 text-sm">{{ error }}</div>
             <div v-if="userProfile && !loading" class="flex flex-col gap-6">
               <!-- Photo de profil -->
@@ -218,7 +226,10 @@ onMounted(async () => {
               </div>-->
               <div class="flex flex-col gap-2">
                 <label class="text-white/60 text-sm font-medium">Statistiques</label>
-                <div v-if="loadingStats" class="text-white/60 text-sm text-center py-4">Chargement des statistiques...</div>
+                <LoadingScreen
+                  v-if="loadingStats"
+                  message="Chargement des statistiques..."
+                />
                 <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
                   <div class="p-5 bg-white/10 backdrop-blur-xl border border-white/15 rounded-xl text-center">
                     <p class="text-white/60 text-xs mb-2">Parties jouées</p>

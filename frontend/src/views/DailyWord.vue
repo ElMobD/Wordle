@@ -6,6 +6,7 @@ import Header from '../components/Header.vue'
 import Modal from '../components/Modal.vue'
 import WordleGrid from '../components/WordleGrid.vue'
 import WordleKeyboard from '../components/WordleKeyboard.vue'
+import LoadingScreen from '../components/LoadingScreen.vue'
 
 const router = useRouter()
 const isHelpModalOpen = ref(false)
@@ -20,9 +21,11 @@ const wordLength = 5
 const loading = ref(true)
 const error = ref('')
 let errorTimeout: number | null = null
+const MIN_LOADING_MS = 1500
 
 // Créer ou récupérer une partie DAILY au chargement
 onMounted(async () => {
+  const startedAt = Date.now()
   try {
     const response = await authenticatedFetch('http://localhost/api/games', {
       method: 'POST',
@@ -43,6 +46,11 @@ onMounted(async () => {
     showError('Erreur réseau')
     console.error(err)
   } finally {
+    const elapsedMs = Date.now() - startedAt
+    const remainingMs = Math.max(0, MIN_LOADING_MS - elapsedMs)
+    if (remainingMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, remainingMs))
+    }
     loading.value = false
   }
   
@@ -192,7 +200,10 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
     </Transition>
     <main class="relative z-5 flex flex-1 min-h-0 w-full items-start xl:items-center justify-center px-3 py-4 sm:px-4 lg:px-6 overflow-y-auto">
       <div class="flex flex-col flex-1 min-h-0 w-full max-w-xl h-auto xl:h-full gap-3 sm:gap-4 justify-start xl:justify-between items-center">
-        <div v-if="loading" class="relative z-5 flex items-center justify-center flex-1 text-white w-full">Chargement...</div>
+        <LoadingScreen
+          v-if="loading"
+          message="Chargement de la partie..."
+        />
         <template v-else>
           <div class="flex-1 min-h-0 w-full flex items-center justify-center">
             <div class="w-full flex justify-center">
@@ -225,7 +236,7 @@ const handlePhysicalKeyPress = (event: KeyboardEvent) => {
         </div>
       </div>
     </Modal>
-    <Modal :isOpen="isResultModalOpen" @close="closeResultModal">
+    <Modal :isOpen="!loading && isResultModalOpen" @close="closeResultModal">
       <div class="flex flex-col items-center gap-6 py-4">
         <div class="text-6xl leading-none">{{ gameStatus === 'WON' ? '✨' : '💡' }}</div>
         <p class="text-lg text-center text-white/95 m-0">

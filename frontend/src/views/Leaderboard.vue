@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import Header from '../components/Header.vue'
+import LoadingScreen from '../components/LoadingScreen.vue'
 
 import { authenticatedFetch } from '../utils/api'
 
@@ -87,7 +88,10 @@ const getRankEmoji = (index: number) => {
           <p class="text-teal-200 text-base text-center">Session terminée - Résultats de la partie</p>
         </header>
 
-        <div v-if="loading" class="text-white text-xl">Chargement du classement...</div>
+        <LoadingScreen
+          v-if="loading"
+          message="Chargement du classement..."
+        />
         <div v-else-if="error" class="text-red-400 text-xl">{{ error }}</div>
         <div v-else class="w-full space-y-3">
           <div 

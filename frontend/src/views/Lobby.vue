@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import Header from '../components/Header.vue'
 import LobbyChat from '../components/LobbyChat.vue'
+import LoadingScreen from '../components/LoadingScreen.vue'
 import { useLobbySocket } from '../composables/useLobbySocket'
 import { useActivityPing } from '../composables/useActivityPing'
 import { watch } from 'vue'
@@ -10,11 +11,27 @@ import { watch } from 'vue'
 const router = useRouter()
 const route = useRoute()
 const sessionCode = route.params.sessionCode as string
-const { connect, disconnect, send, isConnected, lastMessage} = useLobbySocket()
+const { connect, send, isConnected, lastMessage} = useLobbySocket()
 // --- Retry logic for lobby info request ---
 let lobbyInfoReceived = false;
 let retryCount = 0;
 const maxRetries = 5;
+const isRouteLoading = ref(true)
+const MIN_LOADING_MS = 1500
+let navigationToken = 0
+watch(
+  () => route.fullPath,
+  async () => {
+    const currentToken = ++navigationToken
+    isRouteLoading.value = true
+    await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_MS))
+    if (currentToken === navigationToken) {
+      isRouteLoading.value = false
+    }
+  },
+  { immediate: true }
+)
+
 
 function sendLobbyInfoRequest() {
   if (!isConnected.value) return;
@@ -32,7 +49,7 @@ function sendPing() {
   send({ type: 'PING' })
 }
 
-const { lastActivity } = useActivityPing(
+useActivityPing(
   sendPing,         // fonction pour envoyer le ping
   isConnected,      // ref ou fonction qui retourne l’état de connexion
   (code) => connect(code), // fonction pour tenter une reconnexion avec sessionCode
@@ -242,4 +259,5 @@ const quitLobby = () => {
   </div>
   <router-view v-else />
   <LobbyChat v-if="!$route.path.includes('/leaderboard')" :session-code="sessionCode" />
+  <LoadingScreen v-if="isRouteLoading" message="Chargement du lobby..." />
 </template>

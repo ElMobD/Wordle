@@ -3,6 +3,7 @@ import { onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuth } from '../composables/useAuth'
 import { setTokenCookie } from '../utils/cookie'
+import LoadingScreen from '../components/LoadingScreen.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -44,12 +45,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="callback-container">
-    <div class="loading">
-      <p>Connexion en cours...</p>
-      <div class="spinner"></div>
-    </div>
-  </div>
+  <LoadingScreen message="Connexion en cours..." />
 </template>
 
 <style scoped>
