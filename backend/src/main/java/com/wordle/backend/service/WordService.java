@@ -1,5 +1,6 @@
 package com.wordle.backend.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +31,7 @@ public class WordService {
     private final Random random;
     private final Clock clock;
 
+    @Autowired
     public WordService(@Value("${app.daily-word.zone-id:Europe/Paris}") String dailyWordZoneId) {
         this(Clock.system(ZoneId.of(dailyWordZoneId)));
     }

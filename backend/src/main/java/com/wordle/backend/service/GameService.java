@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -59,22 +58,22 @@ public class GameService {
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
 
         if (gameType == Game.GameType.DAILY) {
-            LocalDate today = LocalDate.now();
-            LocalDateTime startOfDay = today.atStartOfDay();
-            LocalDateTime endOfDay = today.plusDays(1).atStartOfDay().minusNanos(1);
-            Optional<Game> dailyToday = gameRepository.findByUserIdAndGameTypeAndCreatedAtBetween(
-                    userId,
-                    gameType,
-                    startOfDay,
-                    endOfDay
-            );
-            if (dailyToday.isPresent()) {
-                return dailyToday.get();
+            String todayDailyAnswer = wordService.getDailyWord();
+            List<Game> dailyGames = gameRepository.findByUserIdAndGameTypeOrderByCreatedAtDesc(userId, gameType);
+
+            if (!dailyGames.isEmpty()) {
+                Game latestDailyGame = dailyGames.get(0);
+                if (latestDailyGame.getAnswer() != null
+                        && latestDailyGame.getAnswer().equalsIgnoreCase(todayDailyAnswer)) {
+                    return latestDailyGame;
+                }
             }
+
+            Game game = new Game(user, gameType, todayDailyAnswer);
+            return gameRepository.save(game);
         }
-        String answer = (gameType == Game.GameType.DAILY)
-                ? wordService.getDailyWord()
-                : wordService.getRandomWord();
+
+        String answer = wordService.getRandomWord();
         Game game = new Game(user, gameType, answer);
         return gameRepository.save(game);
     }
