@@ -35,6 +35,7 @@ const correctAnswer = ref('')
 const isAdvancingRound = ref(false)
 let timerInterval: number | null = null
 let timerEndAtMs: number | null = null
+let lastLoadSyncAtMs = 0
 
 type PlayerStatus = 'IN_PROGRESS' | 'WON' | 'LOST'
 interface PlayerState {
@@ -53,6 +54,16 @@ const statusLabel: Record<PlayerStatus, string> = {
 
 const { connect, send, isConnected, lastMessage} = useLobbySocket()
 
+const requestLoadGameSync = () => {
+  // Evite les rafales de LOAD_GAME si plusieurs events arrivent quasi en même temps.
+  const now = Date.now()
+  if (now - lastLoadSyncAtMs < 500) {
+    return
+  }
+  lastLoadSyncAtMs = now
+  send({ type: 'LOAD_GAME', sessionCode })
+}
+
 onMounted(async () => {
   userIdCookie.value = document.cookie.split('; ').find(row => row.startsWith('userId='))?.split('=')[1] || null
   connect()
@@ -68,8 +79,6 @@ onMounted(async () => {
 })
 watch(lastMessage, (msg) => {
   if (!msg) return
-  console.table(msg)
-
   if (msg.type === 'load_game' || msg.type === 'game_start') {
     const isNewGameStart = msg.type === 'game_start' && String(msg.gameId) !== String(gameId.value)
     if (isNewGameStart) {
@@ -161,12 +170,14 @@ watch(lastMessage, (msg) => {
       roundFinishedReason.value = msg.reason || 'ALL_PLAYERS_FINISHED'
       correctAnswer.value = msg.answer || ''
       stopTimer()
+      requestLoadGameSync()
     }
   } else if (msg.type === 'session_finished') {
     roundFinished.value = true
     hasNextRound.value = false
     roundFinishedReason.value = 'SESSION_FINISHED'
     stopTimer()
+    requestLoadGameSync()
   } else if (msg.type === 'game_status_updated') {
     // Un autre joueur a terminé sa game (WON ou LOST)
     const player = playersState.value.find(p => String(p.id) === String(msg.userId))
