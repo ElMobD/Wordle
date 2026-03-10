@@ -342,6 +342,22 @@ public class LobbyWebSocketHandler extends TextWebSocketHandler {
 
                             safeSend(session, new TextMessage(responseFactory.loadGame(playerGame)));
                             logger.info("Game chargée pour userId=" + user.getId() + ", gameId=" + playerGame.getId());
+
+                            // Si le dernier round est terminé (tous les joueurs ont fini ou timer expiré),
+                            // clôturer la session et notifier tout le lobby.
+                            boolean isLastRound = roundNumber >= s.getRounds();
+                            boolean isRoundFinished = gameService.isRoundFinished(s, roundNumber);
+                            if ("IN_PROGRESS".equals(s.getStatus()) && isLastRound && isRoundFinished) {
+                                gameService.finalizeRoundScores(s.getId(), roundNumber, s.getTimeLimit());
+
+                                s.setStatus("FINISHED");
+                                s.setUpdatedAt(LocalDateTime.now());
+                                sessionService.save(s);
+
+                                broadcast(sessionCode, responseFactory.sessionFinished(sessionCode));
+                                logger.info("Session terminée via LOAD_GAME pour " + sessionCode + " (dernier round terminé)");
+                            }
+                            
                         } else {
                             safeSend(session, new TextMessage(responseFactory.error("Aucune game trouvée pour ce joueur dans ce round")));
                             logger.warning("Aucune game trouvée pour userId=" + user.getId() + " dans session " + sessionCode + " round " + roundNumber);
