@@ -61,7 +61,7 @@ public class GameService {
         if (gameType == Game.GameType.DAILY) {
             LocalDate today = LocalDate.now();
             LocalDateTime startOfDay = today.atStartOfDay();
-            LocalDateTime endOfDay = today.atTime(23, 59, 59);
+            LocalDateTime endOfDay = today.plusDays(1).atStartOfDay().minusNanos(1);
             Optional<Game> dailyToday = gameRepository.findByUserIdAndGameTypeAndCreatedAtBetween(
                     userId,
                     gameType,
