@@ -1,29 +1,15 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { useRoute } from 'vue-router'
 import { onMounted } from 'vue'
-import { ref , watch} from 'vue'
+import { ref } from 'vue'
 import Header from '../components/Header.vue'
 import Modal from '../components/Modal.vue'
 import { useAuth } from '../composables/useAuth'
 import LoadingScreen from '../components/LoadingScreen.vue'
 
-const route = useRoute()
-const isRouteLoading = ref(true)
-const MIN_LOADING_MS = 1500
-let navigationToken = 0
-watch(
-  () => route.fullPath,
-  async () => {
-    const currentToken = ++navigationToken
-    isRouteLoading.value = true
-    await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_MS))
-    if (currentToken === navigationToken) {
-      isRouteLoading.value = false
-    }
-  },
-  { immediate: true }
-)
+const HOMEPAGE_LOADING_KEY = 'homepage_loading_seen'
+const isRouteLoading = ref(sessionStorage.getItem(HOMEPAGE_LOADING_KEY) !== '1')
+const MIN_LOADING_MS = 3000
 
 const { checkAuth } = useAuth()
 const router = useRouter()
@@ -54,6 +40,12 @@ const goToProfile = () => {
 }
 onMounted(async () => {
     checkAuth();
+
+    if (isRouteLoading.value) {
+      await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_MS))
+      isRouteLoading.value = false
+      sessionStorage.setItem(HOMEPAGE_LOADING_KEY, '1')
+    }
 })
 </script>
 
